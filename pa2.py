@@ -57,8 +57,8 @@ class AIPlayer(Player):
         beta = 10000
 
         # first step of alpha beta alg.
-        for row in range(len(board)):
-            for col in range(len(board)):
+        for row in range(board.width):
+            for col in range(board.height):
                 # skip some positions(see alphabeta in detail)
                 if not board.can_add_to(row, col):
                     continue
@@ -96,8 +96,8 @@ class AIPlayer(Player):
 
         if maximizingPlayer:
             value = -100000
-            for child_row in range(len(board)):
-                for child_col in range(len(board)):
+            for child_row in range(board.width):
+                for child_col in range(board.height):
                     # If this position if full, skip
                     if not board.can_add_to(child_row, child_col):
                         continue
@@ -128,8 +128,8 @@ class AIPlayer(Player):
             return value
         else:
             value = 100000
-            for child_row in range(len(board)):
-                for child_col in range(len(board)):
+            for child_row in range(board.width):
+                for child_col in range(board.height):
                     if not board.can_add_to(child_row, child_col):
                         continue
 
@@ -209,9 +209,9 @@ class AIPlayer(Player):
             Add num_checker, then we can check different situations
         """
         if self.is_horizontal_win(self.checker, row, col, 4, board) \
-           or self.is_vertical_win(self.checker, row, col, 4, board) \
-           or self.is_diagonal1_win(self.checker, row, col, 4, board) \
-           or self.is_diagonal2_win(self.checker, row, col, 4, board):
+                or self.is_vertical_win(self.checker, row, col, 4, board) \
+                or self.is_diagonal1_win(self.checker, row, col, 4, board) \
+                or self.is_diagonal2_win(self.checker, row, col, 4, board):
             return 8888
         else:
             return 0
@@ -219,8 +219,8 @@ class AIPlayer(Player):
     def check_double_open3(self, row, col, board):
         if [self.is_horizontal_win(self.checker, row, col, 4, board),
             self.is_vertical_win(self.checker, row, col, 4, board),
-           self.is_diagonal1_win(self.checker, row, col, 4, board),
-           self.is_diagonal2_win(self.checker, row, col, 4, board)].count(True) >= 2:
+            self.is_diagonal1_win(self.checker, row, col, 4, board),
+            self.is_diagonal2_win(self.checker, row, col, 4, board)].count(True) >= 2:
             return 7777
         else:
             return 0
@@ -330,8 +330,6 @@ class AIPlayer(Player):
                 return True
 
         return False
-
-
 
     # def meet_tree(self, board, choice):
     #
