@@ -215,10 +215,10 @@ class AIPlayer(Player):
             return 0
 
     def check_double_open3(self, row, col, board):
-        if [self.is_horizontal_win(self.checker, row, col, 4, board),
-            self.is_vertical_win(self.checker, row, col, 4, board),
-            self.is_diagonal1_win(self.checker, row, col, 4, board),
-            self.is_diagonal2_win(self.checker, row, col, 4, board)].count(True) >= 2:
+        if [self.is_horizontal_win(self.checker, row, col, 3, board),
+            self.is_vertical_win(self.checker, row, col, 3, board),
+            self.is_diagonal1_win(self.checker, row, col, 3, board),
+            self.is_diagonal2_win(self.checker, row, col, 3, board)].count(True) >= 2:
             return 7777
         else:
             return 0
