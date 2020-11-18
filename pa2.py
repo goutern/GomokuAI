@@ -26,7 +26,7 @@ class AIPlayer(Player):
         self.blockArea = 0  # to save the block area that we don't need to consider(seems redundant)
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 5
+        self.depth = 3
 
     def next_move(self, board):
         """ returns the called AIPlayer's next move for a game on
@@ -60,14 +60,15 @@ class AIPlayer(Player):
                     continue
                 if self.is_isolated(row, col, board):
                     continue
-
-                score = self.alphabeta(board, row, col, self.depth, alpha, beta, False)
+                board.add_checker(self.checker, row, col)
+                score = self.alphabeta(board, self.depth, alpha, beta, False)
+                board.remove_checker(self.checker, row, col)
                 if score > max_score:
                     max_score = score
                     best_row, best_col = row, col
         return best_row, best_col
 
-    def alphabeta(self, board, row, column, depth, alpha, beta, maximizingPlayer):
+    def alphabeta(self, board, depth, alpha, beta, maximizingPlayer):
         """ return the score if we add checker to (row, column).
             row: row number of position
             col: column number of position
@@ -103,7 +104,9 @@ class AIPlayer(Player):
                     # It is wrong here. In this way(use board as input argument),
                     # we need a function that can remove checker from the board. This should be a
                     # backtracking algorithm, we should add the check and then remove.
-                    value = max(value, self.alphabeta(board, i, j, depth - 1, alpha, beta, False))
+                    board.add_checker(self.checker, i, j)
+                    value = max(value, self.alphabeta(board, depth - 1, alpha, beta, False))
+                    board.remove_checker(self.checker, i, j)
                     alpha = max(alpha, value)
                     if alpha >= beta:
                         break  # (* beta cutoff *)
@@ -119,7 +122,9 @@ class AIPlayer(Player):
                         continue
 
                     if board.can_add_to(i, j):
-                        value = min(value, self, self.alphabeta(board, i, j, depth - 1, alpha, beta, True))
+                        board.add_checker(self.opponent_checker(), i, j)
+                        value = min(value, self, self.alphabeta(board, depth - 1, alpha, beta, True))
+                        board.remove_checker(self.opponent_checker(), i, j)
                         beta = min(beta, value)
                         if beta <= alpha:
                             break  # (* alpha cutoff *)

@@ -62,6 +62,17 @@ class Board:
         
         if self.can_add_to(row, col):
             self.slots[row][col] = checker
+
+    def remove_checker(self, checker, row, col):
+        """ adds the specified checker (either 'X' or 'O') to the
+            column with the specified index col in the called Board.
+            inputs: checker is either 'X' or 'O'
+                    col is a valid column index
+        """
+        assert(checker == 'X' or checker == 'O')
+
+        if not self.can_add_to(row, col):
+            self.slots[row][col] = " "
             
     def reset(self):
         self.slots = [[' ']*self.width for r in range(self.height)]
