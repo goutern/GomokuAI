@@ -23,7 +23,6 @@ class AIPlayer(Player):
         # This part seems useless...
         super().__init__(checker)
         self.isolated = 0
-        self.game_size = 0
         self.minimizer = 0
         self.maximizer = 1
         self.depth = 3
@@ -48,8 +47,7 @@ class AIPlayer(Player):
         # FEEL FREE TO CHANGE ANYTHING!
 
         if self.isolated == 0:
-            self.game_size = len(board)
-            self.isolated = [[False] * len(board) for i in range(board)]
+            self.isolated = [[False] * board.width for i in board.height]
 
         max_score = -10000  # keep the max score
         best_row, best_col = 0, 0  # keep the position of best score
@@ -57,8 +55,8 @@ class AIPlayer(Player):
         beta = 10000
 
         # first step of alpha beta alg.
-        for row in range(board.width):
-            for col in range(board.height):
+        for row in range(board.height):
+            for col in range(board.width):
                 # skip some positions(see alphabeta in detail)
                 if not board.can_add_to(row, col):
                     continue
@@ -96,8 +94,8 @@ class AIPlayer(Player):
 
         if maximizingPlayer:
             value = -100000
-            for child_row in range(board.width):
-                for child_col in range(board.height):
+            for child_row in range(board.height):
+                for child_col in range(board.width):
                     # If this position if full, skip
                     if not board.can_add_to(child_row, child_col):
                         continue
@@ -128,8 +126,8 @@ class AIPlayer(Player):
             return value
         else:
             value = 100000
-            for child_row in range(board.width):
-                for child_col in range(board.height):
+            for child_row in range(board.height):
+                for child_col in range(board.width):
                     if not board.can_add_to(child_row, child_col):
                         continue
 
