@@ -135,15 +135,18 @@ class AIPlayer(Player):
 
     def compute_score(self, row, col, board, maximizingPlayer):
         """
-            open five: "XXXXX" win! 10000 pts
-            open four, double open three: "_XXXX_" or "  " gonna win! 9000 pts
-            if we achieve open five and open four, we will win, so we give then extremely high scores.
-            open three: attack! _XXX_
-            open two: _XX_
-            dead four: OXXXX_
-            dead three: OXXX_
-            dead two: OXX_
-            single: _X_
+            1. good start
+            2. score for each situations
+                open five: "XXXXX" win! 10000 pts
+                open four, double open three: "_XXXX_" or "  " gonna win! 9000 pts
+                if we achieve open five and open four, we will win, so we give then extremely high scores.
+                open three: attack! _XXX_
+                open two: _XX_
+                dead four: OXXXX_
+                dead three: OXXX_
+                dead two: OXX_
+                single: _X_
+            3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
 
         return
