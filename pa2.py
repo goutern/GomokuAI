@@ -77,7 +77,7 @@ class AIPlayer(Player):
         # Need a function that calculate score based on the current board
         # Need a function to check whether it is a terminal node(game over)
         # We can use the same function to calculate both minimizer and maximizer,
-        # and we need to use g = f(minimizer) + f(maximizer).
+        # and we need to use g = f(minimizer) + f(maximizer). consider weights? a * f(max) + b * f(min)
         # If it is maximizer's turn, score should be g. Else,  -g
         if depth == 0 or "node is a terminal node":
             return "the heuristic value of node"
@@ -128,7 +128,19 @@ class AIPlayer(Player):
     def is_isolated(self, row, col, borad):
         return True
 
-    def compute_score(self, row, col, board):
+    def compute_score(self, row, col, board, maximizingPlayer):
+        """
+            open five: "XXXXX" win! 10000 pts
+            open four, double open three: "_XXXX_" or "  " gonna win! 9000 pts
+            if we achieve open five and open four, we will win, so we give then extremely high scores.
+            open three: attack! _XXX_
+            open two: _XX_
+            dead four: OXXXX_
+            dead three: OXXX_
+            dead two: OXX_
+            single: _X_
+        """
+
         return
 
     # def meet_tree(self, board, choice):
