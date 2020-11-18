@@ -77,7 +77,8 @@ class AIPlayer(Player):
         # Need a function that calculate score based on the current board
         # Need a function to check whether it is a terminal node(game over)
         # We can use the same function to calculate both minimizer and maximizer,
-        # But maximizer should be f(args), minimizer should be -f(args).
+        # and we need to use g = f(minimizer) + f(maximizer).
+        # If it is maximizer's turn, score should be g. Else,  -g
         if depth == 0 or "node is a terminal node":
             return "the heuristic value of node"
         if maximizingPlayer:
