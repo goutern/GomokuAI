@@ -12,6 +12,7 @@
 #
 
 from pa2_gomoku import Player
+import random
 
 
 class AIPlayer(Player):
@@ -26,6 +27,9 @@ class AIPlayer(Player):
         self.minimizer = 0
         self.maximizer = 1
         self.depth = 3
+        self.my_checkers = []
+        self.opponent_first_checkers = []
+        # self.start_type  = -1
 
     def next_move(self, board):
         """ returns the called AIPlayer's next move for a game on
@@ -42,17 +46,28 @@ class AIPlayer(Player):
         # We only cares the return of this function
         ################################################################
 
+        # 11.19 first 3 moves. It's a bit difficult to do 5 moves.
+
         # Here I just try to find the position that has max score.
         # But I am not sure whether it is a proper way.
         # FEEL FREE TO CHANGE ANYTHING!
 
         if self.isolated == 0:
-            self.isolated = [[False] * board.width for i in board.height]
+            self.isolated = [[False] * board.width for i in range(board.height)]
+
+        if self.num_moves <= 2:
+            self.pinpoint_checker(board)
+            return self.first_moves(board.height, board.width)
+
+        for row in range(board.height):
+            for col in range(board.width):
+                if not board.can_add_to(row, col):
+                    self.update_isolate(row, col, 2, board.height, board.width)
 
         max_score = -10000  # keep the max score
         best_row, best_col = 0, 0  # keep the position of best score
-        alpha = -10000
-        beta = 10000
+        alpha = -100000
+        beta = 100000
 
         # first step of alpha beta alg.
         for row in range(board.height):
@@ -60,15 +75,15 @@ class AIPlayer(Player):
                 # skip some positions(see alphabeta in detail)
                 if not board.can_add_to(row, col):
                     continue
-                if self.isolated[row][col]:
+                if not self.isolated[row][col]:
                     continue
 
                 # search the tree
                 board.add_checker(self.checker, row, col)
-                isolate_temp = [[i for i in board[j]] for j in board]
-                self.update_isolate(row, col, 2)
-                score = self.alphabeta(board, self.depth, alpha, beta, False)
-                board.remove_checker(self.checker, row, col)
+                isolate_temp = self.isolated[:]
+                self.update_isolate(row, col, 2, board.height, board.width)
+                score = self.alphabeta(board, row, col, self.depth, alpha, beta, False)
+                self.remove_checker(row, col, board)
                 self.isolated = isolate_temp
 
                 # pick the biggest score
@@ -89,7 +104,11 @@ class AIPlayer(Player):
         # We can use the same function to calculate both minimizer and maximizer,
         # and we need to use g = f(minimizer) + f(maximizer). consider weights? a * f(max) + b * f(min)
         # If it is maximizer's turn, score should be g. Else,  -g
-        if depth == 0 or self.is_win(row, col, board):
+        win_score = self.is_win(row, col, board, maximizingPlayer)
+        if win_score:
+            return win_score
+
+        if depth == 0:
             return self.compute_score(row, col, board, maximizingPlayer)
 
         if maximizingPlayer:
@@ -108,13 +127,13 @@ class AIPlayer(Player):
                     # _____
                     # _____
                     # And we can keep the situation in an array like board, so we do not to compute repeatedly.
-                    if self.isolated[child_row][child_col]:
+                    if not self.isolated[child_row][child_col]:
                         continue
 
                     # search tree, backtrack
                     board.add_checker(self.checker, child_row, child_col)
-                    isolate_temp = [[i for i in board[j]] for j in board]
-                    self.update_isolate(child_row, child_col, 2)
+                    isolate_temp = self.isolated[:]
+                    self.update_isolate(child_row, child_col, 2, board.height, board.width)
                     value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, False))
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
@@ -131,13 +150,13 @@ class AIPlayer(Player):
                     if not board.can_add_to(child_row, child_col):
                         continue
 
-                    if self.isolated[child_row][child_col]:
+                    if not self.isolated[child_row][child_col]:
                         continue
 
                     board.add_checker(self.opponent_checker(), child_row, child_col)
-                    isolate_temp = [[i for i in board[j]] for j in board]
-                    self.update_isolate(child_row, child_col, 2)
-                    value = min(value, self, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, True))
+                    isolate_temp = self.isolated[:]
+                    self.update_isolate(child_row, child_col, 2, board.height, board.width)
+                    value = min(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, True))
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
@@ -152,7 +171,8 @@ class AIPlayer(Player):
             2. score for each situations
                 open five: "XXXXX" win! 10000 pts
                 open four, double open three: "_XXXX_" or "  " gonna win! 9000 pts
-                if we achieve open five and open four, we will win, so we give then extremely high scores.
+
+
                 open three: attack! _XXX_
                 open two: _XX_
                 dead four: OXXXX_
@@ -162,7 +182,7 @@ class AIPlayer(Player):
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
 
-        return
+        return 2  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
@@ -170,11 +190,9 @@ class AIPlayer(Player):
         if not board.can_add_to(row, col):
             board.slots[row][col] = " "
 
-    def update_isolate(self, row, col, layer):
-        for row_index in range(max(row - layer, 0), min(row + layer + 1, self.game_size)):
-            if row_index < 0 or row_index > self.game_size:
-                continue
-            for col_index in range(max(col - layer, 0), min(col + layer + 1, self.game_size)):
+    def update_isolate(self, row, col, layer, row_size, col_size):
+        for row_index in range(max(row - layer, 0), min(row + layer + 1, row_size)):
+            for col_index in range(max(col - layer, 0), min(col + layer + 1, col_size)):
                 self.isolated[row_index][col_index] = True
         # else:
         #     for row_index in range(max(row - layer, 0), min(row + layer + 1, self.game_size)):
@@ -196,29 +214,34 @@ class AIPlayer(Player):
             5, open 4, double open 4, we will win. So this is the terminate node
         """
         if maximizingPlayer:
-            board.is_win_for(self.checker, row, col)  # 5
+            return board.is_win_for(self.checker, row, col) or \
+                self.check_double_open3(self.checker,row, col, board) or\
+                self.check_open4(self.checker, row, col, board)
 
         else:
-            board.is_win_for(self.opponent_checker(), row, col)
+            return board.is_win_for(self.opponent_checker(), row, col) or \
+                self.check_open4(self.opponent_checker(), row, col, board)  or \
+                self.check_double_open3(self.opponent_checker(), row, col, board)
 
-    def check_open4(self, row, col, board):
+
+    def check_open4(self, checker, row, col, board):
         """
             I copy part of the codes from pa2_gomoku.py(Class Board).
             Add num_checker, then we can check different situations
         """
-        if self.is_horizontal_win(self.checker, row, col, 4, board) \
-                or self.is_vertical_win(self.checker, row, col, 4, board) \
-                or self.is_diagonal1_win(self.checker, row, col, 4, board) \
-                or self.is_diagonal2_win(self.checker, row, col, 4, board):
+        if self.is_horizontal_win(checker, row, col, 4, board) \
+                or self.is_vertical_win(checker, row, col, 4, board) \
+                or self.is_diagonal1_win(checker, row, col, 4, board) \
+                or self.is_diagonal2_win(checker, row, col, 4, board):
             return 8888
         else:
             return 0
 
-    def check_double_open3(self, row, col, board):
-        if [self.is_horizontal_win(self.checker, row, col, 3, board),
-            self.is_vertical_win(self.checker, row, col, 3, board),
-            self.is_diagonal1_win(self.checker, row, col, 3, board),
-            self.is_diagonal2_win(self.checker, row, col, 3, board)].count(True) >= 2:
+    def check_double_open3(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 3, board),
+            self.is_vertical_win(checker, row, col, 3, board),
+            self.is_diagonal1_win(checker, row, col, 3, board),
+            self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
             return 7777
         else:
             return 0
@@ -329,12 +352,43 @@ class AIPlayer(Player):
 
         return False
 
-    # def meet_tree(self, board, choice):
-    #
-    #     # When the opponent have 3 consecutive pieces, we only have 2 choices
-    #
-    #     return
+    def pinpoint_checker(self, board):
+        """
+            only for first several moves
+        """
+        for row in range(board.height):
+            for col in range(board.width):
+                if board.slots[row][col] == " ":
+                    continue
+                elif board.slots[row][col] == self.checker:
+                    self.my_checkers.append([row, col])
+                else:
+                    self.opponent_first_checkers.append([row, col])
 
-    # def meet_four(self, head, tail):
-    #     # When the opponent has 4 consecutive pieces, we pnly have one choices
-    #     return np.sign(tail[0] - head[0]) + tail[0], np.sign(tail[1] - head[1]) + tail[1]
+    def first_moves(self, height, width):
+        if len(self.my_checkers) == len(self.opponent_first_checkers):  # we go first
+            if len(self.my_checkers) == 0:
+                return height//2, width//2
+            elif len(self.my_checkers) == 1:
+                row_diff = self.my_checkers[0][0] - self.opponent_first_checkers[0][0]
+                col_diff = self.my_checkers[0][1] - self.opponent_first_checkers[0][1]
+                if abs(row_diff) == 1:
+                    if abs(col_diff) == 1:
+                        # self.start_type = "pu"
+                        return 2 * self.opponent_first_checkers[0][0] - self.my_checkers[0][0], \
+                               self.my_checkers[0][1]
+                    else:
+                        return -1, -1
+                if row_diff == 0:
+                    if abs(col_diff) == 1:
+                        # self.start_type = "hua"
+                        return self.opponent_first_checkers[0][0] + 1, self.opponent_first_checkers[0][1]
+                    else:
+                        return -1, -1
+                else:
+                    return -1, -1
+        else:  # go second
+            if len(self.my_checkers) == 0:
+                return self.opponent_first_checkers[0][0] + random.choice([1, -1]), \
+                       self.opponent_first_checkers[0][1] + random.choice([1, -1])
+
