@@ -142,11 +142,9 @@ class AIPlayer(Player):
 
                     # search tree, backtrack
                     board.add_checker(self.checker, child_row, child_col)
-                    # self.my_moves.append([child_row, child_col])
                     isolate_temp = self.isolated[:]
                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
                     value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, False))
-                    # self.my_moves.remove([child_row, child_col])
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
