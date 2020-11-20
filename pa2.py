@@ -28,8 +28,9 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 3
+        self.depth = 1
         self.my_checkers = []
+        self.my_moves = []
         self.opponent_first_checkers = []
         # self.start_type  = -1
 
@@ -59,7 +60,9 @@ class AIPlayer(Player):
 
         if self.num_moves <= 2:
             self.pinpoint_checker(board)
-            return self.first_moves(board.height, board.width)
+            first_move = self.first_moves(board.height, board.width)
+            self.my_moves.append(list(first_move))
+            return first_move
 
         for row in range(board.height):
             for col in range(board.width):
@@ -93,6 +96,7 @@ class AIPlayer(Player):
                     max_score = score
                     best_row, best_col = row, col
                     print(score)
+        self.my_moves.append([best_row, best_col])
         return best_row, best_col
 
     def alphabeta(self, board, row, col, depth, alpha, beta, maximizingPlayer):
@@ -184,35 +188,34 @@ class AIPlayer(Player):
                 single: _X_
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
-        # score = 0
+
         min_row = row - 1 if row - 1 >= 0 else 0
         max_row = row + 1 if row + 1 < board.width else board.width - 1
         min_col = col - 1 if col - 1 >= 0 else 0
         max_col = col + 1 if col + 1 < board.height else board.height - 1
-        score = 2
         #
-        if [min_row, min_col] in self.my_checkers:
+        if [min_row, min_col] in self.my_moves:
             if min_row != row and min_col != col:
                 score += 200
-        if [min_row, col] in self.my_checkers:
+        if [min_row, col] in self.my_moves:
             if min_row != row:
                 score += 200
-        if [min_row, max_col] in self.my_checkers:
+        if [min_row, max_col] in self.my_moves:
             if min_row != row and max_col != col:
                 score += 200
-        if [row, min_col] in self.my_checkers:
+        if [row, min_col] in self.my_moves:
             if min_col != col:
                 score += 200
-        if [row, max_col] in self.my_checkers:
+        if [row, max_col] in self.my_moves:
             if max_col != col:
                 score += 200
-        if [max_row, min_col] in self.my_checkers:
+        if [max_row, min_col] in self.my_moves:
             if max_row != row and min_col != col:
                 score += 200
-        if [max_row, col] in self.my_checkers:
+        if [max_row, col] in self.my_moves:
             if max_row != row:
                 score += 200
-        if [max_row, max_col] in self.my_checkers:
+        if [max_row, max_col] in self.my_moves:
             if max_row != row and max_col != col:
                 score += 200
 
