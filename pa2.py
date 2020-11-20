@@ -28,7 +28,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 1
+        self.depth = 2
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
@@ -69,7 +69,7 @@ class AIPlayer(Player):
                 if not board.can_add_to(row, col):
                     self.update_isolate(row, col, 2, board.height, board.width)
 
-        max_score = -10000  # keep the max score
+        max_score = -100000  # keep the max score
         best_row, best_col = 0, 0  # keep the position of best score
         alpha = -100000
         beta = 100000
@@ -96,6 +96,9 @@ class AIPlayer(Player):
                     max_score = score
                     best_row, best_col = row, col
                     print(score)
+                alpha = max(alpha, score)
+                if alpha >= beta:
+                    break  # (* beta cutoff *)
         self.my_moves.append([best_row, best_col])
         return best_row, best_col
 
@@ -139,9 +142,11 @@ class AIPlayer(Player):
 
                     # search tree, backtrack
                     board.add_checker(self.checker, child_row, child_col)
+                    # self.my_moves.append([child_row, child_col])
                     isolate_temp = self.isolated[:]
                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
                     value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, False))
+                    # self.my_moves.remove([child_row, child_col])
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
@@ -194,30 +199,34 @@ class AIPlayer(Player):
         min_col = col - 1 if col - 1 >= 0 else 0
         max_col = col + 1 if col + 1 < board.height else board.height - 1
         #
-        if [min_row, min_col] in self.my_moves:
+        score = 2
+        scoreAdjust = 200
+        # if not maximizingPlayer:
+        #     scoreAdjust = -scoreAdjust
+        if board.slots[min_row][min_col] == self.checker:
             if min_row != row and min_col != col:
-                score += 200
-        if [min_row, col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[min_row][col] == self.checker:
             if min_row != row:
-                score += 200
-        if [min_row, max_col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[min_row][max_col] == self.checker:
             if min_row != row and max_col != col:
-                score += 200
-        if [row, min_col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[row][min_col] == self.checker:
             if min_col != col:
-                score += 200
-        if [row, max_col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[row][max_col] == self.checker:
             if max_col != col:
-                score += 200
-        if [max_row, min_col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[max_row][min_col] == self.checker:
             if max_row != row and min_col != col:
-                score += 200
-        if [max_row, col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[max_row][col] == self.checker:
             if max_row != row:
-                score += 200
-        if [max_row, max_col] in self.my_moves:
+                score += scoreAdjust
+        if board.slots[max_row][max_col] == self.checker:
             if max_row != row and max_col != col:
-                score += 200
+                score += scoreAdjust
 
         return score  # I set this so I can run the game and see what our AI can do currently
 
