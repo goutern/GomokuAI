@@ -117,7 +117,7 @@ class AIPlayer(Player):
         # If it is maximizer's turn, score should be g. Else,  -g
         win_score = self.is_win(row, col, board, maximizingPlayer)
         if win_score:
-            return win_score
+            return 15000
         if depth == 0:
             return self.compute_score(row, col, board, maximizingPlayer)
 
@@ -200,7 +200,7 @@ class AIPlayer(Player):
         max_col = col + 1 if col + 1 < board.height else board.height - 1
         #
         score = 0
-        score += self.is_win(row, col, board, maximizingPlayer)
+        score += 15000 if self.is_win(row, col, board, maximizingPlayer) else 0
         score += self.check_open4(self.checker, row, col, board)
         score += self.check_double_open3(self.checker, row, col, board)
         score += self.check_single_open3(self.checker, row, col, board)
