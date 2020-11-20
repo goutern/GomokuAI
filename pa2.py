@@ -191,9 +191,6 @@ class AIPlayer(Player):
                 single: _X_
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
-
-
-        checker = self.checker if maximizingPlayer else self.opponent_checker()
         score = 0
         score += self.check_single_open5(self.checker, row, col, board)
         score += (self.check_single_open5(self.opponent_checker(), row, col, board) + 1000)
@@ -203,33 +200,6 @@ class AIPlayer(Player):
         score += (self.check_double_open3(self.opponent_checker, row, col, board) + 1000)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
-        # scoreAdjust = 200
-        # # if not maximizingPlayer:
-        # #     scoreAdjust = -scoreAdjust
-        # if board.slots[min_row][min_col] == self.checker:
-        #     if min_row != row and min_col != col:
-        #         score += scoreAdjust
-        # if board.slots[min_row][col] == self.checker:
-        #     if min_row != row:
-        #         score += scoreAdjust
-        # if board.slots[min_row][max_col] == self.checker:
-        #     if min_row != row and max_col != col:
-        #         score += scoreAdjust
-        # if board.slots[row][min_col] == self.checker:
-        #     if min_col != col:
-        #         score += scoreAdjust
-        # if board.slots[row][max_col] == self.checker:
-        #     if max_col != col:
-        #         score += scoreAdjust
-        # if board.slots[max_row][min_col] == self.checker:
-        #     if max_row != row and min_col != col:
-        #         score += scoreAdjust
-        # if board.slots[max_row][col] == self.checker:
-        #     if max_row != row:
-        #         score += scoreAdjust
-        # if board.slots[max_row][max_col] == self.checker:
-        #     if max_row != row and max_col != col:
-        #         score += scoreAdjust
 
         return score  # I set this so I can run the game and see what our AI can do currently
 
