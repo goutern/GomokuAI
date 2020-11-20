@@ -13,6 +13,7 @@
 
 from pa2_gomoku import Player
 import random
+import numpy as np
 
 
 class AIPlayer(Player):
@@ -26,7 +27,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 3
+        self.depth = 2
         self.my_checkers = []
         self.opponent_first_checkers = []
         # self.start_type  = -1
@@ -215,14 +216,13 @@ class AIPlayer(Player):
         """
         if maximizingPlayer:
             return board.is_win_for(self.checker, row, col) or \
-                self.check_double_open3(self.checker,row, col, board) or\
-                self.check_open4(self.checker, row, col, board)
+                   self.check_double_open3(self.checker, row, col, board) or \
+                   self.check_open4(self.checker, row, col, board)
 
         else:
             return board.is_win_for(self.opponent_checker(), row, col) or \
-                self.check_open4(self.opponent_checker(), row, col, board)  or \
-                self.check_double_open3(self.opponent_checker(), row, col, board)
-
+                   self.check_open4(self.opponent_checker(), row, col, board) or \
+                   self.check_double_open3(self.opponent_checker(), row, col, board)
 
     def check_open4(self, checker, row, col, board):
         """
@@ -368,7 +368,7 @@ class AIPlayer(Player):
     def first_moves(self, height, width):
         if len(self.my_checkers) == len(self.opponent_first_checkers):  # we go first
             if len(self.my_checkers) == 0:
-                return height//2, width//2
+                return height // 2, width // 2
             elif len(self.my_checkers) == 1:
                 row_diff = self.my_checkers[0][0] - self.opponent_first_checkers[0][0]
                 col_diff = self.my_checkers[0][1] - self.opponent_first_checkers[0][1]
@@ -378,17 +378,16 @@ class AIPlayer(Player):
                         return 2 * self.opponent_first_checkers[0][0] - self.my_checkers[0][0], \
                                self.my_checkers[0][1]
                     else:
-                        return -1, -1
+                        return self.my_checkers[0][0] - np.sign(col_diff), self.my_checkers[0][0] + np.sign(row_diff)
                 if row_diff == 0:
                     if abs(col_diff) == 1:
                         # self.start_type = "hua"
                         return self.opponent_first_checkers[0][0] + 1, self.opponent_first_checkers[0][1]
                     else:
-                        return -1, -1
+                        return self.my_checkers[0][0] - np.sign(col_diff), self.my_checkers[0][0] + np.sign(row_diff)
                 else:
-                    return -1, -1
+                    return self.my_checkers[0][0] - np.sign(col_diff), self.my_checkers[0][0] + np.sign(row_diff)
         else:  # go second
             if len(self.my_checkers) == 0:
                 return self.opponent_first_checkers[0][0] + random.choice([1, -1]), \
                        self.opponent_first_checkers[0][1] + random.choice([1, -1])
-
