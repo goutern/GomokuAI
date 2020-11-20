@@ -29,6 +29,7 @@ class AIPlayer(Player):
         self.minimizer = 0
         self.maximizer = 1
         self.depth = 2
+        self.max_depth = 2
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
@@ -115,11 +116,11 @@ class AIPlayer(Player):
         # We can use the same function to calculate both minimizer and maximizer,
         # and we need to use g = f(minimizer) + f(maximizer). consider weights? a * f(max) + b * f(min)
         # If it is maximizer's turn, score should be g. Else,  -g
-        win_score = self.is_win(row, col, board, maximizingPlayer)
-        if win_score:
-            return 150000
+        # win_score = self.is_win(row, col, board, maximizingPlayer)
+        # if win_score:
+        #     return win_score
         if depth == 0:
-            return self.compute_score(row, col, board, maximizingPlayer)
+            return self.compute_score(row, col, board, maximizingPlayer, depth)
 
         if maximizingPlayer:
             value = -1000000
@@ -175,7 +176,7 @@ class AIPlayer(Player):
                         break  # (* alpha cutoff *)
             return value
 
-    def compute_score(self, row, col, board, maximizingPlayer):
+    def compute_score(self, row, col, board, maximizingPlayer, depth):
         """
             1. good start
             2. score for each situations
@@ -193,15 +194,15 @@ class AIPlayer(Player):
         """
         score = 0
         score += self.check_single_open5(self.checker, row, col, board)
-        score += (self.check_single_open5(self.opponent_checker(), row, col, board) + 1000)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 1.5)
         score += self.check_single_open4(self.checker, row, col, board)
-        score += (self.check_single_open4(self.opponent_checker, row, col, board) + 1000)
+        score += (self.check_single_open4(self.opponent_checker, row, col, board) * 1.5)
         score += self.check_double_open3(self.checker, row, col, board)
-        score += (self.check_double_open3(self.opponent_checker, row, col, board) + 1000)
+        score += (self.check_double_open3(self.opponent_checker, row, col, board) * 1.5)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
 
-        return score  # I set this so I can run the game and see what our AI can do currently
+        return score * (depth + 1) # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
@@ -260,7 +261,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 5, board),
             self.is_diagonal1_win(checker, row, col, 5, board),
             self.is_diagonal2_win(checker, row, col, 5, board)].count(True) == 1:
-            return 7100
+            return 100001
         else:
             return 0
     def check_single_open4(self, checker, row, col, board):
@@ -268,7 +269,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 4, board),
             self.is_diagonal1_win(checker, row, col, 4, board),
             self.is_diagonal2_win(checker, row, col, 4, board)].count(True) == 1:
-            return 6100
+            return 6001
         else:
             return 0
 
@@ -277,7 +278,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 3, board),
             self.is_diagonal1_win(checker, row, col, 3, board),
             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
-            return 3010
+            return 6020
         else:
             return 0
 
@@ -296,7 +297,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 2, board),
             self.is_diagonal1_win(checker, row, col, 2, board),
             self.is_diagonal2_win(checker, row, col, 2, board)].count(True) == 1:
-            return 1555
+            return 1111
         else:
             return 0
 
