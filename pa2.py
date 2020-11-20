@@ -28,7 +28,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 1
+        self.depth = 2
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
@@ -194,6 +194,7 @@ class AIPlayer(Player):
         min_col = col - 1 if col - 1 >= 0 else 0
         max_col = col + 1 if col + 1 < board.height else board.height - 1
         #
+        score = 0
         if [min_row, min_col] in self.my_moves:
             if min_row != row and min_col != col:
                 score += 200
@@ -413,6 +414,8 @@ class AIPlayer(Player):
                         # self.start_type = "pu"
                         return 2 * self.opponent_first_checkers[0][0] - self.my_checkers[0][0], \
                                self.my_checkers[0][1]
+                    elif abs(col_diff) == 0:
+                        return self.opponent_first_checkers[0][0], self.opponent_first_checkers[0][1] + 1
                     else:
                         return self.my_checkers[0][0] - np.sign(col_diff), self.my_checkers[0][0] + np.sign(row_diff)
                 if row_diff == 0:
