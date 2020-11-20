@@ -33,6 +33,8 @@ class AIPlayer(Player):
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
+        self.max_vals = []
+        self.min_vals = []
         # self.start_type  = -1
 
     def next_move(self, board):
@@ -61,9 +63,7 @@ class AIPlayer(Player):
 
         if self.num_moves <= 2:
             self.pinpoint_checker(board)
-            first_move = self.first_moves(board.height, board.width)
-            self.my_moves.append(list(first_move))
-            return first_move
+            return self.first_moves(board.height, board.width)
 
         for row in range(board.height):
             for col in range(board.width):
@@ -84,7 +84,6 @@ class AIPlayer(Player):
                 if not self.isolated[row][col]:
                     continue
 
-
                 # search the tree
                 board.add_checker(self.checker, row, col)
                 isolate_temp = self.isolated[:]
@@ -100,7 +99,7 @@ class AIPlayer(Player):
                 alpha = max(alpha, score)
                 if alpha >= beta:
                     break  # (* beta cutoff *)
-        print(score)
+        print(max_score)
         self.my_moves.append([best_row, best_col])
         return best_row, best_col
 
@@ -145,7 +144,7 @@ class AIPlayer(Player):
                     board.add_checker(self.checker, child_row, child_col)
                     isolate_temp = self.isolated[:]
                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
-                    value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, False))
+                    value = max(value, self.alphabeta(board, row, col, depth - 1, alpha, beta, False))
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
@@ -153,6 +152,7 @@ class AIPlayer(Player):
                     alpha = max(alpha, value)
                     if alpha >= beta:
                         break  # (* beta cutoff *)
+            self.max_vals.append([value, row, col])
             return value
         else:
             value = 1000000
@@ -167,13 +167,14 @@ class AIPlayer(Player):
                     board.add_checker(self.opponent_checker(), child_row, child_col)
                     isolate_temp = self.isolated[:]
                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
-                    value = min(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, True))
+                    value = min(value, self.alphabeta(board, row, col, depth - 1, alpha, beta, True))
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
                     beta = min(beta, value)
                     if beta <= alpha:
                         break  # (* alpha cutoff *)
+            self.min_vals.append([value, row, col])
             return value
 
     def compute_score(self, row, col, board, maximizingPlayer, depth):
@@ -194,15 +195,15 @@ class AIPlayer(Player):
         """
         score = 0
         score += self.check_single_open5(self.checker, row, col, board)
-        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 1.5)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 2)
         score += self.check_single_open4(self.checker, row, col, board)
-        score += (self.check_single_open4(self.opponent_checker, row, col, board) * 1.5)
+        score += (self.check_single_open4(self.opponent_checker, row, col, board) * 2)
         score += self.check_double_open3(self.checker, row, col, board)
-        score += (self.check_double_open3(self.opponent_checker, row, col, board) * 1.5)
+        score += (self.check_double_open3(self.opponent_checker, row, col, board) * 2)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
 
-        return score * (depth + 1) # I set this so I can run the game and see what our AI can do currently
+        return score  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
@@ -264,6 +265,7 @@ class AIPlayer(Player):
             return 100001
         else:
             return 0
+
     def check_single_open4(self, checker, row, col, board):
         if [self.is_horizontal_win(checker, row, col, 4, board),
             self.is_vertical_win(checker, row, col, 4, board),
@@ -281,7 +283,6 @@ class AIPlayer(Player):
             return 6020
         else:
             return 0
-
 
     def check_single_open3(self, checker, row, col, board):
         if [self.is_horizontal_win(checker, row, col, 3, board),
