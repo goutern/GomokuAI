@@ -69,10 +69,10 @@ class AIPlayer(Player):
                 if not board.can_add_to(row, col):
                     self.update_isolate(row, col, 2, board.height, board.width)
 
-        max_score = -100000  # keep the max score
+        max_score = -1000000  # keep the max score
         best_row, best_col = 0, 0  # keep the position of best score
-        alpha = -100000
-        beta = 100000
+        alpha = -1000000
+        beta = 1000000
 
         # first step of alpha beta alg.
         for row in range(board.height):
@@ -117,12 +117,12 @@ class AIPlayer(Player):
         # If it is maximizer's turn, score should be g. Else,  -g
         win_score = self.is_win(row, col, board, maximizingPlayer)
         if win_score:
-            return 15000
+            return 150000
         if depth == 0:
             return self.compute_score(row, col, board, maximizingPlayer)
 
         if maximizingPlayer:
-            value = -100000
+            value = -1000000
             for child_row in range(board.height):
                 for child_col in range(board.width):
                     # If this position if full, skip
@@ -154,7 +154,7 @@ class AIPlayer(Player):
                         break  # (* beta cutoff *)
             return value
         else:
-            value = 100000
+            value = 1000000
             for child_row in range(board.height):
                 for child_col in range(board.width):
                     if not board.can_add_to(child_row, child_col):
@@ -193,16 +193,14 @@ class AIPlayer(Player):
         """
 
 
-
-        min_row = row - 1 if row - 1 >= 0 else 0
-        max_row = row + 1 if row + 1 < board.width else board.width - 1
-        min_col = col - 1 if col - 1 >= 0 else 0
-        max_col = col + 1 if col + 1 < board.height else board.height - 1
-        #
+        checker = self.checker if maximizingPlayer else self.opponent_checker()
         score = 0
-        score += 15000 if self.is_win(row, col, board, maximizingPlayer) else 0
-        score += self.check_open4(self.checker, row, col, board)
+        score += self.check_single_open5(self.checker, row, col, board)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board) + 1000)
+        score += self.check_single_open4(self.checker, row, col, board)
+        score += (self.check_single_open4(self.opponent_checker, row, col, board) + 1000)
         score += self.check_double_open3(self.checker, row, col, board)
+        score += (self.check_double_open3(self.opponent_checker, row, col, board) + 1000)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
         # scoreAdjust = 200
@@ -287,6 +285,23 @@ class AIPlayer(Player):
         else:
             return 0
 
+    def check_single_open5(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 5, board),
+            self.is_vertical_win(checker, row, col, 5, board),
+            self.is_diagonal1_win(checker, row, col, 5, board),
+            self.is_diagonal2_win(checker, row, col, 5, board)].count(True) == 1:
+            return 7100
+        else:
+            return 0
+    def check_single_open4(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 4, board),
+            self.is_vertical_win(checker, row, col, 4, board),
+            self.is_diagonal1_win(checker, row, col, 4, board),
+            self.is_diagonal2_win(checker, row, col, 4, board)].count(True) == 1:
+            return 6100
+        else:
+            return 0
+
     def check_double_open3(self, checker, row, col, board):
         if [self.is_horizontal_win(checker, row, col, 3, board),
             self.is_vertical_win(checker, row, col, 3, board),
@@ -295,6 +310,7 @@ class AIPlayer(Player):
             return 3010
         else:
             return 0
+
 
     def check_single_open3(self, checker, row, col, board):
         if [self.is_horizontal_win(checker, row, col, 3, board),
