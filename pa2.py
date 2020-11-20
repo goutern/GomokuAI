@@ -83,6 +83,7 @@ class AIPlayer(Player):
                 if not self.isolated[row][col]:
                     continue
 
+
                 # search the tree
                 board.add_checker(self.checker, row, col)
                 isolate_temp = self.isolated[:]
@@ -95,10 +96,10 @@ class AIPlayer(Player):
                 if score > max_score:
                     max_score = score
                     best_row, best_col = row, col
-                    print(score)
                 alpha = max(alpha, score)
                 if alpha >= beta:
                     break  # (* beta cutoff *)
+        print(score)
         self.my_moves.append([best_row, best_col])
         return best_row, best_col
 
@@ -117,7 +118,6 @@ class AIPlayer(Player):
         win_score = self.is_win(row, col, board, maximizingPlayer)
         if win_score:
             return win_score
-
         if depth == 0:
             return self.compute_score(row, col, board, maximizingPlayer)
 
@@ -192,39 +192,46 @@ class AIPlayer(Player):
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
 
+
+
         min_row = row - 1 if row - 1 >= 0 else 0
         max_row = row + 1 if row + 1 < board.width else board.width - 1
         min_col = col - 1 if col - 1 >= 0 else 0
         max_col = col + 1 if col + 1 < board.height else board.height - 1
         #
-        score = 2
-        scoreAdjust = 200
-        # if not maximizingPlayer:
-        #     scoreAdjust = -scoreAdjust
-        if board.slots[min_row][min_col] == self.checker:
-            if min_row != row and min_col != col:
-                score += scoreAdjust
-        if board.slots[min_row][col] == self.checker:
-            if min_row != row:
-                score += scoreAdjust
-        if board.slots[min_row][max_col] == self.checker:
-            if min_row != row and max_col != col:
-                score += scoreAdjust
-        if board.slots[row][min_col] == self.checker:
-            if min_col != col:
-                score += scoreAdjust
-        if board.slots[row][max_col] == self.checker:
-            if max_col != col:
-                score += scoreAdjust
-        if board.slots[max_row][min_col] == self.checker:
-            if max_row != row and min_col != col:
-                score += scoreAdjust
-        if board.slots[max_row][col] == self.checker:
-            if max_row != row:
-                score += scoreAdjust
-        if board.slots[max_row][max_col] == self.checker:
-            if max_row != row and max_col != col:
-                score += scoreAdjust
+        score = 0
+        score += self.is_win(row, col, board, maximizingPlayer)
+        score += self.check_open4(self.checker, row, col, board)
+        score += self.check_double_open3(self.checker, row, col, board)
+        score += self.check_single_open3(self.checker, row, col, board)
+        score += self.check_single_open2(self.checker, row, col, board)
+        # scoreAdjust = 200
+        # # if not maximizingPlayer:
+        # #     scoreAdjust = -scoreAdjust
+        # if board.slots[min_row][min_col] == self.checker:
+        #     if min_row != row and min_col != col:
+        #         score += scoreAdjust
+        # if board.slots[min_row][col] == self.checker:
+        #     if min_row != row:
+        #         score += scoreAdjust
+        # if board.slots[min_row][max_col] == self.checker:
+        #     if min_row != row and max_col != col:
+        #         score += scoreAdjust
+        # if board.slots[row][min_col] == self.checker:
+        #     if min_col != col:
+        #         score += scoreAdjust
+        # if board.slots[row][max_col] == self.checker:
+        #     if max_col != col:
+        #         score += scoreAdjust
+        # if board.slots[max_row][min_col] == self.checker:
+        #     if max_row != row and min_col != col:
+        #         score += scoreAdjust
+        # if board.slots[max_row][col] == self.checker:
+        #     if max_row != row:
+        #         score += scoreAdjust
+        # if board.slots[max_row][max_col] == self.checker:
+        #     if max_row != row and max_col != col:
+        #         score += scoreAdjust
 
         return score  # I set this so I can run the game and see what our AI can do currently
 
@@ -276,7 +283,7 @@ class AIPlayer(Player):
                 or self.is_vertical_win(checker, row, col, 4, board) \
                 or self.is_diagonal1_win(checker, row, col, 4, board) \
                 or self.is_diagonal2_win(checker, row, col, 4, board):
-            return 8888
+            return 4001
         else:
             return 0
 
@@ -285,7 +292,25 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 3, board),
             self.is_diagonal1_win(checker, row, col, 3, board),
             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
-            return 7777
+            return 3010
+        else:
+            return 0
+
+    def check_single_open3(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 3, board),
+            self.is_vertical_win(checker, row, col, 3, board),
+            self.is_diagonal1_win(checker, row, col, 3, board),
+            self.is_diagonal2_win(checker, row, col, 3, board)].count(True) == 1:
+            return 2100
+        else:
+            return 0
+
+    def check_single_open2(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 2, board),
+            self.is_vertical_win(checker, row, col, 2, board),
+            self.is_diagonal1_win(checker, row, col, 2, board),
+            self.is_diagonal2_win(checker, row, col, 2, board)].count(True) == 1:
+            return 1555
         else:
             return 0
 
