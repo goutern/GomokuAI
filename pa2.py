@@ -16,6 +16,8 @@ from pa2_gomoku import Player
 import random
 import numpy as np
 
+import copy
+
 
 class AIPlayer(Player):
     """ a subclass of Player that looks ahead some number of moves and 
@@ -74,7 +76,7 @@ class AIPlayer(Player):
                     self.update_isolate(row, col, self.layer, board.height, board.width)
 
         max_score = -1000000  # keep the max score
-        best_row, best_col = 0, 0  # keep the position of best score
+        best_row, best_col = -1, -1  # keep the position of best score
         alpha = -1000000
         beta = 1000000
 
@@ -89,7 +91,7 @@ class AIPlayer(Player):
 
                 # search the tree
                 board.add_checker(self.checker, row, col)
-                isolate_temp = self.isolated[:]
+                isolate_temp = copy.deepcopy(self.isolated)
                 self.update_isolate(row, col, self.layer, board.height, board.width)
                 score = self.alphabeta(board, row, col, self.depth, -beta, -alpha, False)
                 self.remove_checker(row, col, board)
@@ -127,10 +129,9 @@ class AIPlayer(Player):
         self.open3 = False
         self.oppopen3 = False
         win_score = self.is_win(row, col, board, maximizingPlayer)
-        if win_score:
-            return -win_score
-        if depth == 0:
-            return -self.compute_score(row, col, board, maximizingPlayer)
+        if depth == 0 or board.is_win_for(self.checker, row, col) or \
+                board.is_win_for(self.opponent_checker(), row, col):
+            return self.compute_score(row, col, board, maximizingPlayer)
 
         for child_row in range(board.height):
             for child_col in range(board.width):
@@ -146,21 +147,19 @@ class AIPlayer(Player):
                     board.add_checker(self.checker, child_row, child_col)
                 else:
                     board.add_checker(self.opponent_checker(), child_row, child_col)
-                isolate_temp = self.isolated[:]
+                isolate_temp = copy.deepcopy(self.isolated)
                 self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
-                value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, -beta, -alpha, not maximizingPlayer))
-                if maximizingPlayer:
-                    self.remove_checker(child_row, child_col, board)
-                else:
-                    self.remove_checker(row, col, board)
+                score = self.alphabeta(board, child_row, child_col, depth - 1, -beta, -alpha, not maximizingPlayer)
+                self.remove_checker(child_row, child_col, board)
+
                 self.isolated = isolate_temp
 
                 # compare
-                if value > alpha:
-                    if value >= beta:
+                if score > alpha:
+                    if score >= beta:
                         return beta
-                    alpha = value
-            return alpha
+                    alpha = score
+        return alpha
         # else:
         #     value = 1000000
         #     for child_row in range(board.height):
@@ -214,7 +213,7 @@ class AIPlayer(Player):
         # if score != 0:
         #     return score
         score = 300 if self.myopen3 else 0
-        score = score + 300 * 10 if self.myopen3 else score
+        score = score - 300 * 10 if self.myopen3 else score
 
         # score += self.check_single_open2(self.checker, row, col, board)
         # score += self.check_single_open2(self.opponent_checker(), row, col, board)
