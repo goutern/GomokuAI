@@ -15,7 +15,7 @@ import sys
 from pa2_gomoku import Player
 import random
 import numpy as np
-
+import time
 import copy
 
 
@@ -30,7 +30,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 2
+        self.depth = 3
         self.max_depth = 2
         self.my_checkers = []
         self.my_moves = []
@@ -47,6 +47,7 @@ class AIPlayer(Player):
                      Player is playing.
             return: row, col are the coordinated of a vacant location on the board 
         """
+        start = time.time()
         self.num_moves += 1
 
         ################### TODO: ######################################
@@ -106,6 +107,8 @@ class AIPlayer(Player):
                     break  # (* beta cutoff *)
         print(max_score)
         self.my_moves.append([best_row, best_col])
+        end = time.time()
+        print(end - start)
         return best_row, best_col
 
     def alphabeta(self, board, row, col, depth, alpha, beta, maximizingPlayer):
@@ -200,17 +203,15 @@ class AIPlayer(Player):
         """
         score = 0
         score += self.check_single_open5(self.checker, row, col, board)
-        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 5)
         score += self.check_single_open4(self.checker, row, col, board)
-        temp_score = (self.check_single_open4(self.opponent_checker(), row, col, board) * 5)
-        if temp_score:
-            score += temp_score
         score += self.check_double_open3(self.checker, row, col, board)
-        score += (self.check_double_open3(self.opponent_checker(), row, col, board) * 5)
-        score += (self.check_single_open3(self.opponent_checker(), row, col, board) * 5)
-        score += (self.check_single_open2(self.opponent_checker(), row, col, board) * 5)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board))
+        score += (self.check_single_open4(self.opponent_checker(), row, col, board))
+        score += (self.check_double_open3(self.opponent_checker(), row, col, board))
+        score += (self.check_single_open3(self.opponent_checker(), row, col, board))
+        score += (self.check_single_open2(self.opponent_checker(), row, col, board))
 
         return score  # I set this so I can run the game and see what our AI can do currently
 
@@ -375,7 +376,7 @@ class AIPlayer(Player):
         else:
             # check towards left
             for i in range(1, num_checker + 1 - cnt):
-                if c - i - op >= 0 and board.slots[r][c - i - op] == checker:
+                if c - i >= 0 and board.slots[r][c - i] == checker:
                     cnt += 1
                     # print('Hr: ' + str(cnt))
                 else:
@@ -391,7 +392,7 @@ class AIPlayer(Player):
         op = 0
         if checker == self.opponent_checker():
             op = 1
-            num_checker = num_checker -1
+            num_checker = num_checker - 1
 
         for i in range(num_checker):
             # Check if the next four rows in this col
@@ -407,7 +408,7 @@ class AIPlayer(Player):
         else:
             # check upwards
             for i in range(1, num_checker + 1 - cnt):
-                if r - i - op >= 0 and board.slots[r - i - op][c] == checker:
+                if r - i >= 0 and board.slots[r - i][c] == checker:
                     cnt += 1
                     # print('Vup: ' + str(cnt))
                 else:
@@ -434,9 +435,9 @@ class AIPlayer(Player):
         if cnt == num_checker:
             return True
         else:
-            for i in range(1, num_checker + 1 - cnt):
-                if r - i - op >= 0 and c - i - op >= 0 and \
-                        board.slots[r - i - op][c - i - op] == checker:
+            for i in range(1, num_checker + 1  - cnt):
+                if r - i >= 0 and c - i >= 0 and \
+                        board.slots[r - i][c - i] == checker:
                     cnt += 1
                     # print('D1: R ' + str(cnt))
                 else:
@@ -464,9 +465,9 @@ class AIPlayer(Player):
         if cnt == num_checker:
             return True
         else:
-            for i in range(1, num_checker + 1 - cnt):
-                if r + i + op < board.height and c - i - op >= 0 and \
-                        board.slots[r + i + op][c - i - op] == checker:
+            for i in range(1, num_checker + 1  - cnt):
+                if r + i < board.height and c - i >= 0 and \
+                        board.slots[r + i][c - i] == checker:
                     cnt += 1
                     # print('D2: R ' + str(cnt))
                 else:
