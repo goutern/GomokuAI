@@ -30,7 +30,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 4
+        self.depth = 2
         self.max_depth = 2
         self.my_checkers = []
         self.my_moves = []
@@ -103,7 +103,8 @@ class AIPlayer(Player):
                 board.add_checker(self.checker, row, col)
                 isolate_temp = copy.deepcopy(self.isolated)
                 self.update_isolate(row, col, self.layer, board.height, board.width)
-                score = -self.alphabeta(board, row, col, self.depth, -beta, -alpha, False)
+                score = -self.compute_score(row, col, board, True, self.depth) \
+                        -self.alphabeta(board, row, col, self.depth, -beta, -alpha, False)
                 self.remove_checker(row, col, board)
                 self.isolated = isolate_temp
 
@@ -149,7 +150,8 @@ class AIPlayer(Player):
                 board.add_checker(self.checker_list[maximizingPlayer], child_row, child_col)
                 isolate_temp = copy.deepcopy(self.isolated)
                 self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
-                score = -self.alphabeta(board, child_row, child_col, depth - 1, -beta, -alpha, not maximizingPlayer)
+                score = -self.compute_score(child_row, child_col, board, maximizingPlayer, depth) \
+                        -self.alphabeta(board, child_row, child_col, depth - 1, -beta, -alpha, not maximizingPlayer)
                 self.remove_checker(child_row, child_col, board)
 
                 self.isolated = isolate_temp
@@ -206,7 +208,7 @@ class AIPlayer(Player):
             if is_open == 2:
                 my_score += self.score_dict[num_checkers]
             elif is_open == 1:
-                my_score += self.score_dict[num_checkers] * 0.11
+                my_score += self.score_dict[num_checkers] * 0.5
 
         for direction in self.direction:
             num_checkers, is_open = self.direction_check(self.checker_list[not maximizingPlayer],
@@ -214,7 +216,7 @@ class AIPlayer(Player):
             if is_open == 2:
                 op_score += self.score_dict[num_checkers]
             elif is_open == 1:
-                op_score += self.score_dict[num_checkers] * 0.11
+                op_score += self.score_dict[num_checkers] * 0.5
 
         # score = self.is_win(row, col, board, maximizingPlayer)
 
@@ -233,7 +235,7 @@ class AIPlayer(Player):
         # score += self.check_single_open2(self.checker, row, col, board)
         # score += self.check_single_open2(self.opponent_checker(), row, col, board)
 
-        return my_score - op_score * 0.1  # I set this so I can run the game and see what our AI can do currently
+        return (my_score - op_score * 0.5) * depth  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
