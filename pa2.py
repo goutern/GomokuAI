@@ -29,11 +29,14 @@ class AIPlayer(Player):
         self.minimizer = 0
         self.maximizer = 1
         self.depth = 2
+        self.max_depth = 2
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
         self.opponent_factor = 0.95
         self.layer = 1
+        self.max_vals = []
+        self.min_vals = []
         # self.start_type  = -1
 
     def next_move(self, board):
@@ -61,10 +64,8 @@ class AIPlayer(Player):
 
         if self.num_moves <= 2:
             self.pinpoint_checker(board)
-            first_move = self.first_moves(board.height, board.width)
-            if first_move:
-                self.my_moves.append(list(first_move))
-                return first_move
+            return self.first_moves(board.height, board.width)
+
 
         for row in range(board.height):
             for col in range(board.width):
@@ -100,8 +101,9 @@ class AIPlayer(Player):
                 alpha = max(alpha, score)
                 if alpha >= beta:
                     break  # (* beta cutoff *)
+
         print(alpha)
-        self.my_moves.append([best_row, best_col])
+        # self.my_moves.append([best_row, best_col])
         return best_row, best_col
 
     def alphabeta(self, board, row, col, depth, alpha, beta, maximizingPlayer):
@@ -116,11 +118,17 @@ class AIPlayer(Player):
         # We can use the same function to calculate both minimizer and maximizer,
         # and we need to use g = f(minimizer) + f(maximizer). consider weights? a * f(max) + b * f(min)
         # If it is maximizer's turn, score should be g. Else,  -g
-        win_score = self.is_win(row, col, board, maximizingPlayer)
-        if win_score:
-            return win_score
+
+        # win_score = self.is_win(row, col, board, maximizingPlayer)
+        # if win_score:
+        #     return win_score
+
+        # win_score = self.is_win(row, col, board, maximizingPlayer)
+        # if win_score:
+        #     return win_score
+
         if depth == 0:
-            return self.compute_score(row, col, board, maximizingPlayer)
+            return self.compute_score(row, col, board, maximizingPlayer, depth)
 
         if maximizingPlayer:
             value = -1000000
@@ -144,8 +152,13 @@ class AIPlayer(Player):
                     # search tree, backtrack
                     board.add_checker(self.checker, child_row, child_col)
                     isolate_temp = self.isolated[:]
+# <<<<<<< HEAD
                     self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
                     value = max(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, False))
+# =======
+#                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
+#                     value = max(value, self.alphabeta(board, row, col, depth - 1, alpha, beta, False))
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
                     self.remove_checker(child_row, child_col, board)
                     self.isolated = isolate_temp
 
@@ -153,30 +166,37 @@ class AIPlayer(Player):
                     alpha = max(alpha, value)
                     if alpha >= beta:
                         break  # (* beta cutoff *)
+            self.max_vals.append([value, row, col])
             return value
-        else:
-            value = 1000000
-            for child_row in range(board.height):
-                for child_col in range(board.width):
-                    if not board.can_add_to(child_row, child_col):
-                        continue
+#         else:
+#             value = 1000000
+#             for child_row in range(board.height):
+#                 for child_col in range(board.width):
+#                     if not board.can_add_to(child_row, child_col):
+#                         continue
+#
+#                     if not self.isolated[child_row][child_col]:
+#                         continue
+#
+#                     board.add_checker(self.opponent_checker(), child_row, child_col)
+#                     isolate_temp = self.isolated[:]
+# <<<<<<< HEAD
+#                     self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
+#                     value = min(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, True))
+# =======
+#                     self.update_isolate(child_row, child_col, 2, board.height, board.width)
+#                     value = min(value, self.alphabeta(board, row, col, depth - 1, alpha, beta, True))
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
+#                     self.remove_checker(child_row, child_col, board)
+#                     self.isolated = isolate_temp
+#
+#                     beta = min(beta, value)
+#                     if beta <= alpha:
+#                         break  # (* alpha cutoff *)
+#             self.min_vals.append([value, row, col])
+#             return value
 
-                    if not self.isolated[child_row][child_col]:
-                        continue
-
-                    board.add_checker(self.opponent_checker(), child_row, child_col)
-                    isolate_temp = self.isolated[:]
-                    self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
-                    value = min(value, self.alphabeta(board, child_row, child_col, depth - 1, alpha, beta, True))
-                    self.remove_checker(child_row, child_col, board)
-                    self.isolated = isolate_temp
-
-                    beta = min(beta, value)
-                    if beta <= alpha:
-                        break  # (* alpha cutoff *)
-            return value
-
-    def compute_score(self, row, col, board, maximizingPlayer):
+    def compute_score(self, row, col, board, maximizingPlayer, depth):
         """
             1. good start
             2. score for each situations
@@ -194,6 +214,7 @@ class AIPlayer(Player):
         """
 
         score = 0
+# <<<<<<< HEAD
         # score += self.check_single_open5(self.checker, row, col, board)
         # score += self.opponent_factor * self.check_single_open5(self.opponent_checker(), row, col, board)
         # if score != 0:
@@ -206,6 +227,14 @@ class AIPlayer(Player):
         # score += self.opponent_factor * self.check_double_open3(self.opponent_checker, row, col, board)
         # if score != 0:
         #     return score
+# =======
+        score += self.check_single_open5(self.checker, row, col, board)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 2)
+        score += self.check_single_open4(self.checker, row, col, board)
+        score += (self.check_single_open4(self.opponent_checker, row, col, board) * 2)
+        score += self.check_double_open3(self.checker, row, col, board)
+        score += (self.check_double_open3(self.opponent_checker, row, col, board) * 2)
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open3(self.opponent_checker(), row, col, board) * 300
 
@@ -267,20 +296,36 @@ class AIPlayer(Player):
             return 0
 
     def check_single_open5(self, checker, row, col, board):
+# <<<<<<< HEAD
         if self.is_horizontal_win(checker, row, col, 5, board) \
                 or self.is_vertical_win(checker, row, col, 5, board) \
                 or self.is_diagonal1_win(checker, row, col, 5, board) \
                 or self.is_diagonal2_win(checker, row, col, 5, board):
             return 9100
+# =======
+#         if [self.is_horizontal_win(checker, row, col, 5, board),
+#             self.is_vertical_win(checker, row, col, 5, board),
+#             self.is_diagonal1_win(checker, row, col, 5, board),
+#             self.is_diagonal2_win(checker, row, col, 5, board)].count(True) == 1:
+#             return 100001
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
         else:
             return 0
 
     def check_single_open4(self, checker, row, col, board):
+# <<<<<<< HEAD
         if self.is_horizontal_win(checker, row, col, 4, board) \
                 or self.is_vertical_win(checker, row, col, 4, board) \
                 or self.is_diagonal1_win(checker, row, col, 4, board) \
                 or self.is_diagonal2_win(checker, row, col, 4, board):
             return 8000
+# =======
+#         if [self.is_horizontal_win(checker, row, col, 4, board),
+#             self.is_vertical_win(checker, row, col, 4, board),
+#             self.is_diagonal1_win(checker, row, col, 4, board),
+#             self.is_diagonal2_win(checker, row, col, 4, board)].count(True) == 1:
+#             return 6001
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
         else:
             return 0
 
@@ -289,7 +334,11 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 3, board),
             self.is_diagonal1_win(checker, row, col, 3, board),
             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
+# <<<<<<< HEAD
             return 7000
+# =======
+#             return 6020
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
         else:
             return 0
 
@@ -300,10 +349,20 @@ class AIPlayer(Player):
                 self.is_diagonal2_win(checker, row, col, 3, board)].count(True) * 1000
 
     def check_single_open2(self, checker, row, col, board):
+# <<<<<<< HEAD
         return [self.is_horizontal_win(checker, row, col, 2, board),
                 self.is_vertical_win(checker, row, col, 2, board),
                 self.is_diagonal1_win(checker, row, col, 2, board),
                 self.is_diagonal2_win(checker, row, col, 2, board)].count(True) * 100
+# =======
+#         if [self.is_horizontal_win(checker, row, col, 2, board),
+#             self.is_vertical_win(checker, row, col, 2, board),
+#             self.is_diagonal1_win(checker, row, col, 2, board),
+#             self.is_diagonal2_win(checker, row, col, 2, board)].count(True) == 1:
+#             return 1111
+#         else:
+#             return 0
+# >>>>>>> 0cfdb598ed1b223a8bea85b183547830c4215292
 
     def is_horizontal_win(self, checker, r, c, num_checker, board):
         cnt = 0
