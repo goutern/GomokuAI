@@ -30,7 +30,7 @@ class AIPlayer(Player):
         self.isolated = 0
         self.minimizer = 0
         self.maximizer = 1
-        self.depth = 2
+        self.depth = 4
         self.max_depth = 2
         self.my_checkers = []
         self.my_moves = []
@@ -214,7 +214,7 @@ class AIPlayer(Player):
         # score += self.check_single_open2(self.checker, row, col, board)
         # score += self.check_single_open2(self.opponent_checker(), row, col, board)
 
-        return score   # I set this so I can run the game and see what our AI can do currently
+        return score  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
@@ -564,218 +564,211 @@ class AIPlayer(Player):
                 return self.opponent_first_checkers[0][0] + random.choice([1, -1]), \
                        self.opponent_first_checkers[0][1] + random.choice([1, -1])
 
-    def horizontal_check(self, checker, r, c, num_checker, board):
+    def direction_check(self, checker, r, c, board, r_dir, c_dir):
         cnt = 0
-        is_open = True
-        lower, upper = c, c
+        counter = 5
+        is_open = 2
+        l_c, u_c = c, c
+        l_r, u_r = r, r
 
-        for i in range(num_checker):
+        for i in range(5):
             # Check if the next four columns in this row
             # contain the specified checker.
-            upper = c + i
-            if upper < board.width and board.slots[r][upper] == checker:
+            u_c = c + i * c_dir
+            u_r = r + i * r_dir
+            if 0 <= u_c < board.width and 0 <= u_r < board.width and board.slots[u_r][u_c] == checker:
                 cnt += 1
+                counter -= 1
                 # print('Hl: ' + str(cnt))
             else:
-                upper -= 1
+                u_c -= 1 * c_dir
+                u_r -= 1 * r_dir
                 break
-        if not board.can_add_to(r, upper + 1):
-            is_open = False
 
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(r, lower - 1):
-                    is_open = False
-                return True, is_open
+        if cnt == 5:
+            return cnt, 2
         else:
+            if not board.can_add_to(u_r + 1 * r_dir, u_c + 1 * c_dir):  # cnt + counter ==5 means no skip
+                is_open -= 1
+            else:
+                counter -= 1
+                if board.can_add_to(u_r + 2 * r_dir, u_c + 2 * c_dir):
+                    counter -= 1
+
             # check towards left
-            for i in range(1, num_checker + 1 - cnt):
-                lower = c - i
-                if c - i >= 0 and board.slots[r][c - i] == checker:
+            for i in range(1, 5 + 1 - cnt):
+                l_c = c - i * c_dir
+                l_r = r - i * r_dir
+                if 0 <= l_c < board.width and 0 <= l_r < board.width and board.slots[l_r][l_c] == checker:
                     cnt += 1
+                    counter -= 1
                     # print('Hr: ' + str(cnt))
                 else:
-                    lower = lower + 1
+                    l_c += 1 * c_dir
+                    l_r += 1 * r_dir
                     break
 
-        if not board.can_add_to(r, lower - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
+            if not board.can_add_to(l_r - 1 * r_dir, l_c - 1 * c_dir):
+                is_open -= 1
             else:
-                return True, is_open
+                counter -= 1
 
-        return False, is_open
-
-    def vertical_check(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        lower, upper = r, r
-
-        for i in range(num_checker):
-            # Check if the next four columns in this row
-            # contain the specified checker.
-            upper = r + i
-            if upper < board.height and board.slots[upper][c] == checker:
-                cnt += 1
-                # print('Hl: ' + str(cnt))
-            else:
-                upper -= 1
-                break
-        if not board.can_add_to(upper + 1, c):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(lower - 1, c):
-                    is_open = False
-                return True, is_open
+        if cnt == 5:
+            return cnt, 2
         else:
-            # check towards left
-            for i in range(1, num_checker + 1 - cnt):
-                lower = r - i
-                if lower >= 0 and board.slots[lower][c] == checker:
-                    cnt += 1
-                    # print('Hr: ' + str(cnt))
-                else:
-                    lower = lower + 1
-                    break
-
-        if not board.can_add_to(lower - 1, c):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
+            if not board.can_add_to(l_r - 1 * r_dir, l_c - 1 * c_dir):  # cnt + counter ==5 means no skip
+                is_open -= 1
             else:
-                return True, is_open
+                counter -= 1
+                if board.can_add_to(l_r - 2 * r_dir, l_c - 2 * c_dir):
+                    counter -= 1
 
-        return False, is_open
-        # for i in range(num_checker):
-        #     # Check if the next four rows in this col
-        #     # contain the specified checker.
-        #     if r + i < board.width and board.slots[r + i][c] == checker:
-        #         cnt += 1
-        #         # print('Vdwn: ' + str(cnt))
-        #     else:
-        #         break
-        #
-        # if cnt == num_checker:
-        #     return True
-        # else:
-        #     # check upwards
-        #     for i in range(1, num_checker + 1 - cnt):
-        #         if r - i >= 0 and board.slots[r - i][c] == checker:
-        #             cnt += 1
-        #             # print('Vup: ' + str(cnt))
-        #         else:
-        #             break
-        #
-        #     if cnt == num_checker:
-        #         return True
-        #
-        # return False
-
-    def diagonal1_check(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        l_c, l_r, u_c, u_r = c, r, c, r
-
-        for i in range(num_checker):
-            u_c, u_r = c + i, r + i
-            if u_r < board.height and u_c < board.width and \
-                    board.slots[u_r][u_c] == checker:
-                cnt += 1
-                # print('D1: L ' + str(cnt))
-            else:
-                u_c -= 1
-                u_r -= 1
-                break
-
-        if not board.can_add_to(u_r + 1, u_c + 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(l_r - 1, l_c - 1):
-                    is_open = False
-                return True, is_open
+        if counter <= 0:
+            return cnt, is_open
         else:
-            for i in range(1, num_checker + 1 - cnt):
-                l_c, l_r = c - i, r - i
-                if l_r >= 0 and l_c >= 0 and \
-                        board.slots[l_r][l_c] == checker:
-                    cnt += 1
-                    # print('D1: R ' + str(cnt))
-                else:
-                    l_r += 1
-                    l_c += 1
-                    break
+            return cnt, 0
 
-        if not board.can_add_to(l_r - 1, l_c - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
-
-    def diagonal2_check(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        l_c, l_r, u_c, u_r = c, r, c, r
-
-        for i in range(num_checker):
-            u_c, u_r = c + i, r - i
-            if u_r >= 0 and u_c < board.width and \
-                    board.slots[u_r][u_c] == checker:
-                cnt += 1
-                # print('D1: L ' + str(cnt))
-            else:
-                u_c -= 1
-                u_r += 1
-                break
-
-        if not board.can_add_to(u_r - 1, u_c + 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if board.can_add_to(l_r + 1, l_c - 1):
-                    is_open = False
-                return True, is_open
-        else:
-            for i in range(1, num_checker + 1 - cnt):
-                l_c, l_r = c - i, r + i
-                if l_r < board.height and l_c >= 0 and \
-                        board.slots[l_r][l_c] == checker:
-                    cnt += 1
-                    # print('D1: R ' + str(cnt))
-                else:
-                    l_r -= 1
-                    l_c += 1
-                    break
-
-        if not board.can_add_to(l_r + 1, l_c - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
+    # def vertical_check(self, checker, r, c, num_checker, board):
+    #     cnt = 0
+    #     is_open = True
+    #     lower, upper = r, r
+    #
+    #     for i in range(num_checker):
+    #         # Check if the next four columns in this row
+    #         # contain the specified checker.
+    #         upper = r + i
+    #         if upper < board.height and board.slots[upper][c] == checker:
+    #             cnt += 1
+    #             # print('Hl: ' + str(cnt))
+    #         else:
+    #             upper -= 1
+    #             break
+    #     if not board.can_add_to(upper + 1, c):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             if not board.can_add_to(lower - 1, c):
+    #                 is_open = False
+    #             return True, is_open
+    #     else:
+    #         # check towards left
+    #         for i in range(1, num_checker + 1 - cnt):
+    #             lower = r - i
+    #             if lower >= 0 and board.slots[lower][c] == checker:
+    #                 cnt += 1
+    #                 # print('Hr: ' + str(cnt))
+    #             else:
+    #                 lower = lower + 1
+    #                 break
+    #
+    #     if not board.can_add_to(lower - 1, c):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             return True, is_open
+    #
+    #     return False, is_open
+    #
+    # def diagonal1_check(self, checker, r, c, num_checker, board):
+    #     cnt = 0
+    #     is_open = True
+    #     l_c, l_r, u_c, u_r = c, r, c, r
+    #
+    #     for i in range(num_checker):
+    #         u_c, u_r = c + i, r + i
+    #         if u_r < board.height and u_c < board.width and \
+    #                 board.slots[u_r][u_c] == checker:
+    #             cnt += 1
+    #             # print('D1: L ' + str(cnt))
+    #         else:
+    #             u_c -= 1
+    #             u_r -= 1
+    #             break
+    #
+    #     if not board.can_add_to(u_r + 1, u_c + 1):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             if not board.can_add_to(l_r - 1, l_c - 1):
+    #                 is_open = False
+    #             return True, is_open
+    #     else:
+    #         for i in range(1, num_checker + 1 - cnt):
+    #             l_c, l_r = c - i, r - i
+    #             if l_r >= 0 and l_c >= 0 and \
+    #                     board.slots[l_r][l_c] == checker:
+    #                 cnt += 1
+    #                 # print('D1: R ' + str(cnt))
+    #             else:
+    #                 l_r += 1
+    #                 l_c += 1
+    #                 break
+    #
+    #     if not board.can_add_to(l_r - 1, l_c - 1):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             return True, is_open
+    #
+    #     return False, is_open
+    #
+    # def diagonal2_check(self, checker, r, c, num_checker, board):
+    #     cnt = 0
+    #     is_open = True
+    #     l_c, l_r, u_c, u_r = c, r, c, r
+    #
+    #     for i in range(num_checker):
+    #         u_c, u_r = c + i, r - i
+    #         if u_r >= 0 and u_c < board.width and \
+    #                 board.slots[u_r][u_c] == checker:
+    #             cnt += 1
+    #             # print('D1: L ' + str(cnt))
+    #         else:
+    #             u_c -= 1
+    #             u_r += 1
+    #             break
+    #
+    #     if not board.can_add_to(u_r - 1, u_c + 1):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             if board.can_add_to(l_r + 1, l_c - 1):
+    #                 is_open = False
+    #             return True, is_open
+    #     else:
+    #         for i in range(1, num_checker + 1 - cnt):
+    #             l_c, l_r = c - i, r + i
+    #             if l_r < board.height and l_c >= 0 and \
+    #                     board.slots[l_r][l_c] == checker:
+    #                 cnt += 1
+    #                 # print('D1: R ' + str(cnt))
+    #             else:
+    #                 l_r -= 1
+    #                 l_c += 1
+    #                 break
+    #
+    #     if not board.can_add_to(l_r + 1, l_c - 1):
+    #         is_open = False
+    #
+    #     if cnt == num_checker:
+    #         if num_checker == 5:
+    #             return True, True
+    #         else:
+    #             return True, is_open
+    #
+    #     return False, is_open
