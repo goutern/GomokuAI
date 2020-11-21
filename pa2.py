@@ -42,6 +42,7 @@ class AIPlayer(Player):
         self.checker_list = [self.opponent_checker(), self.checker]
         self.direction = [[0, 1], [1, 0], [1, 1], [1, -1]]
         self.moves = []
+        self.next = []
         self.score_dict = {
             1: 10,
             2: 100,
@@ -85,43 +86,30 @@ class AIPlayer(Player):
             for col in range(board.width):
                 if not board.can_add_to(row, col):
                     self.update_isolate(row, col, self.layer, board.height, board.width)
-
+        self.moves = []
         max_score = -1000000  # keep the max score
         best_row, best_col = -1, -1  # keep the position of best score
         alpha = -10000000
         beta = 10000000
 
         # first step of alpha beta alg.
-        for row in range(board.height):
-            for col in range(board.width):
-                # skip some positions(see alphabeta in detail)
-                if not board.can_add_to(row, col):
-                    continue
-                if not self.isolated[row][col]:
-                    continue
+        # skip some positions(see alphabeta in detail)
+        # search the tree
 
-                # search the tree
-                board.add_checker(self.checker, row, col)
-                isolate_temp = copy.deepcopy(self.isolated)
-                self.update_isolate(row, col, self.layer, board.height, board.width)
-                self.moves.append([row, col])
-                score = - self.alphabeta(board, row, col, self.depth, -beta, -alpha, False, 0)
-                self.moves.pop()
-                self.remove_checker(row, col, board)
-                self.isolated = isolate_temp
+        score = - self.alphabeta(board, self.depth, alpha, beta, True)
 
-                # pick the biggest score
-                if score > alpha:
-                    if score > beta:
-                        return best_row, best_col
-                    alpha = score
-                    best_row, best_col = row, col
+        # pick the biggest score
+        # if score > alpha:
+        #     if score > beta:
+        #         return best_row, best_col
+        #     alpha = score
+        #     best_row, best_col = row, col
 
         print(alpha)
         self.my_moves.append([best_row, best_col])
-        return best_row, best_col
+        return self.next
 
-    def alphabeta(self, board, row, col, depth, alpha, beta, maximizingPlayer, score_p):
+    def alphabeta(self, board, depth, alpha, beta, maximizingPlayer):
         """ return the score if we add checker to (row, column).
             row: row number of position
             col: column number of position
@@ -135,58 +123,58 @@ class AIPlayer(Player):
         # If it is maximizer's turn, score should be g. Else,  -g
 
         # win_score = self.is_win(row, col, board, maximizingPlayer)
-        if depth == 0 or board.is_win_for(self.checker, row, col) or \
-                board.is_win_for(self.opponent_checker(), row, col):
-            return self.compute_score(row, col, board, not maximizingPlayer, depth) + score_p
+        if len(self.moves) != 0:
+            p = self.moves[-1]
+            if depth == 0 or board.is_win_for(self.checker, p[0], p[1]) or \
+                    board.is_win_for(self.opponent_checker(), p[0], p[1]):
+                return self.eval(board, depth)
 
-        score_pass = self.compute_score(row, col, board, not maximizingPlayer, depth) + score_p
-        for child_row in range(board.height):
-            for child_col in range(board.width):
+
+        for row in range(board.height):
+            for col in range(board.width):
                 # If this position if full, skip
-                if not board.can_add_to(child_row, child_col):
+                if [row, col] in self.moves or not board.can_add_to(row, col):
                     continue
 
-                if not self.isolated[child_row][child_col]:
+                if not self.isolated[row][col]:
                     continue
 
                 # search tree, backtrack
-                board.add_checker(self.checker_list[maximizingPlayer], child_row, child_col)
+                # board.add_checker(self.checker_list[maximizingPlayer], row, col)
                 isolate_temp = copy.deepcopy(self.isolated)
-                self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
+                self.update_isolate(row, col, self.layer, board.height, board.width)
                 self.moves.append([row, col])
-                score = - self.alphabeta(board, child_row, child_col, depth - 1, -beta, -alpha,
-                                         not maximizingPlayer, -score_pass)
-                self.remove_checker(child_row, child_col, board)
-                self.moves.pop()
+                score = - self.alphabeta(board, depth - 1, -beta, -alpha, not maximizingPlayer)
+                node = self.moves.pop()
+                # self.remove_checker(row, col, board)
+                # self.moves.pop()
                 self.isolated = isolate_temp
 
                 # compare
                 if score > alpha:
+                    if depth == self.depth:
+                        self.next = self.moves[0] if len(self.moves) > 0 else node
                     if score > beta:
                         return beta
                     alpha = score
         return alpha
-        # else:
-        #     value = 1000000
-        #     for child_row in range(board.height):
-        #         for child_col in range(board.width):
-        #             if not board.can_add_to(child_row, child_col):
-        #                 continue
-        #
-        #             if not self.isolated[child_row][child_col]:
-        #                 continue
-        #
-        #             board.add_checker(self.opponent_checker(), child_row, child_col)
-        #             isolate_temp = self.isolated[:]
-        #             self.update_isolate(child_row, child_col, self.layer, board.height, board.width)
-        #             value = min(value, self.alphabeta(board, child_row, child_col, depth - 1,  -alpha, -beta, True))
-        #             self.remove_checker(child_row, child_col, board)
-        #             self.isolated = isolate_temp
-        #
-        #             beta = min(beta, value)
-        #             if beta <= alpha:
-        #                 break  # (* alpha cutoff *)
-        #     return -value
+
+    def eval(self, board, depth):
+        i = 1
+        score = 0
+        for node in self.moves:
+            if i:
+                board.add_checker(self.checker_list[i], node[0], node[1])
+                score += self.compute_score(node[0], node[1], board, i, depth)
+                i = 0
+            else:
+                board.add_checker(self.checker_list[i], node[0], node[1])
+                score -= self.compute_score(node[0], node[1], board, i, depth)
+                i = 1
+        a = 0
+        for node in self.moves:
+            board.slots[node[0]][node[1]] = " "
+        return score
 
     def compute_score(self, row, col, board, maximizingPlayer, depth):
         """
@@ -205,7 +193,7 @@ class AIPlayer(Player):
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
         my_score = 0
-        op_score = 0
+        # op_score = 0
         for direction in self.direction:
             num_checkers, is_open = self.direction_check(self.checker_list[maximizingPlayer],
                                                          row, col, board, direction[0], direction[1])
@@ -241,7 +229,7 @@ class AIPlayer(Player):
         # score += self.check_single_open2(self.checker, row, col, board)
         # score += self.check_single_open2(self.opponent_checker(), row, col, board)
 
-        return my_score * depth  # + op_score * 0.5) * depth  # I set this so I can run the game and see what our AI can do currently
+        return my_score  # + op_score * 0.5) * depth  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
