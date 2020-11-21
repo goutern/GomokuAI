@@ -40,7 +40,9 @@ class AIPlayer(Player):
         self.max_vals = []
         self.min_vals = []
         self.checker_list = [self.opponent_checker(), self.checker]
+        self.direction = [[0, 1], [1, 0], [1, 1], [1, -1]]
         self.score_dict = {
+            1: 10,
             2: 100,
             3: 1000,
             4: 10000,
@@ -196,8 +198,25 @@ class AIPlayer(Player):
                 single: _X_
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
+        my_score = 0
+        op_score = 0
+        for direction in self.direction:
+            num_checkers, is_open = self.direction_check(self.checker_list[maximizingPlayer],
+                                                         row, col, board, direction[0], direction[1])
+            if is_open == 2:
+                my_score += self.score_dict[num_checkers]
+            elif is_open == 1:
+                my_score += self.score_dict[num_checkers] * 0.11
 
-        score = self.is_win(row, col, board, maximizingPlayer)
+        for direction in self.direction:
+            num_checkers, is_open = self.direction_check(self.checker_list[not maximizingPlayer],
+                                                         row, col, board, direction[0], direction[1])
+            if is_open == 2:
+                op_score += self.score_dict[num_checkers]
+            elif is_open == 1:
+                op_score += self.score_dict[num_checkers] * 0.11
+
+        # score = self.is_win(row, col, board, maximizingPlayer)
 
         # score should be my score - opponent's score... I don't know how to expalin that, but everyone use this score.
         # score += self.check_single_open5(self.checker, row, col, board)
@@ -214,7 +233,7 @@ class AIPlayer(Player):
         # score += self.check_single_open2(self.checker, row, col, board)
         # score += self.check_single_open2(self.opponent_checker(), row, col, board)
 
-        return score  # I set this so I can run the game and see what our AI can do currently
+        return my_score - op_score * 0.1  # I set this so I can run the game and see what our AI can do currently
 
     def remove_checker(self, row, col, board):
         """ help function
@@ -399,30 +418,6 @@ class AIPlayer(Player):
                 return True, is_open
 
         return False, is_open
-        # for i in range(num_checker):
-        #     # Check if the next four rows in this col
-        #     # contain the specified checker.
-        #     if r + i < board.width and board.slots[r + i][c] == checker:
-        #         cnt += 1
-        #         # print('Vdwn: ' + str(cnt))
-        #     else:
-        #         break
-        #
-        # if cnt == num_checker:
-        #     return True
-        # else:
-        #     # check upwards
-        #     for i in range(1, num_checker + 1 - cnt):
-        #         if r - i >= 0 and board.slots[r - i][c] == checker:
-        #             cnt += 1
-        #             # print('Vup: ' + str(cnt))
-        #         else:
-        #             break
-        #
-        #     if cnt == num_checker:
-        #         return True
-        #
-        # return False
 
     def is_diagonal1_win(self, checker, r, c, num_checker, board):
         cnt = 0
