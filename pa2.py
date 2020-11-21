@@ -16,6 +16,8 @@ from pa2_gomoku import Player
 import random
 import numpy as np
 
+import copy
+
 
 class AIPlayer(Player):
     """ a subclass of Player that looks ahead some number of moves and 
@@ -33,6 +35,7 @@ class AIPlayer(Player):
         self.my_checkers = []
         self.my_moves = []
         self.opponent_first_checkers = []
+        self.layer = 1
         self.max_vals = []
         self.min_vals = []
         # self.start_type  = -1
@@ -58,17 +61,19 @@ class AIPlayer(Player):
         # But I am not sure whether it is a proper way.
         # FEEL FREE TO CHANGE ANYTHING!
 
-        if self.isolated == 0:
-            self.isolated = [[False] * board.width for i in range(board.height)]
+        self.isolated = [[False] * board.width for i in range(board.height)]
 
         if self.num_moves <= 2:
             self.pinpoint_checker(board)
-            return self.first_moves(board.height, board.width)
+            first_move = self.first_moves(board.height, board.width)
+            if first_move:
+                self.my_moves.append(list(first_move))
+                return first_move
 
         for row in range(board.height):
             for col in range(board.width):
                 if not board.can_add_to(row, col):
-                    self.update_isolate(row, col, 2, board.height, board.width)
+                    self.update_isolate(row, col, self.layer, board.height, board.width)
 
         max_score = -1000000  # keep the max score
         best_row, best_col = 0, 0  # keep the position of best score
@@ -86,9 +91,9 @@ class AIPlayer(Player):
 
                 # search the tree
                 board.add_checker(self.checker, row, col)
-                isolate_temp = self.isolated[:]
-                self.update_isolate(row, col, 2, board.height, board.width)
-                score = self.alphabeta(board, row, col, self.depth, alpha, beta, False)
+                isolate_temp = copy.deepcopy(self.isolated)
+                self.update_isolate(row, col, self.layer, board.height, board.width)
+                score = self.alphabeta(board, row, col, self.depth, beta, alpha, False)
                 self.remove_checker(row, col, board)
                 self.isolated = isolate_temp
 
@@ -195,11 +200,15 @@ class AIPlayer(Player):
         """
         score = 0
         score += self.check_single_open5(self.checker, row, col, board)
-        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 2)
+        score += (self.check_single_open5(self.opponent_checker(), row, col, board) * 5)
         score += self.check_single_open4(self.checker, row, col, board)
-        score += (self.check_single_open4(self.opponent_checker, row, col, board) * 2)
+        temp_score = (self.check_single_open4(self.opponent_checker(), row, col, board) * 5)
+        if temp_score:
+            score += temp_score
         score += self.check_double_open3(self.checker, row, col, board)
-        score += (self.check_double_open3(self.opponent_checker, row, col, board) * 2)
+        score += (self.check_double_open3(self.opponent_checker(), row, col, board) * 5)
+        score += (self.check_single_open3(self.opponent_checker(), row, col, board) * 5)
+        score += (self.check_single_open2(self.opponent_checker(), row, col, board) * 5)
         score += self.check_single_open3(self.checker, row, col, board)
         score += self.check_single_open2(self.checker, row, col, board)
 
@@ -262,7 +271,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 5, board),
             self.is_diagonal1_win(checker, row, col, 5, board),
             self.is_diagonal2_win(checker, row, col, 5, board)].count(True) == 1:
-            return 100001
+            return 10000
         else:
             return 0
 
@@ -271,7 +280,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 4, board),
             self.is_diagonal1_win(checker, row, col, 4, board),
             self.is_diagonal2_win(checker, row, col, 4, board)].count(True) == 1:
-            return 6001
+            return 1000
         else:
             return 0
 
@@ -280,7 +289,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 3, board),
             self.is_diagonal1_win(checker, row, col, 3, board),
             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
-            return 6020
+            return 100
         else:
             return 0
 
@@ -289,7 +298,7 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 3, board),
             self.is_diagonal1_win(checker, row, col, 3, board),
             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) == 1:
-            return 2100
+            return 10
         else:
             return 0
 
@@ -298,17 +307,64 @@ class AIPlayer(Player):
             self.is_vertical_win(checker, row, col, 2, board),
             self.is_diagonal1_win(checker, row, col, 2, board),
             self.is_diagonal2_win(checker, row, col, 2, board)].count(True) == 1:
-            return 1111
+            return 1
+        else:
+            return 0
+    def check_single_open5(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 5, board),
+            self.is_vertical_win(checker, row, col, 5, board),
+            self.is_diagonal1_win(checker, row, col, 5, board),
+            self.is_diagonal2_win(checker, row, col, 5, board)].count(True) == 1:
+            return 10000
+        else:
+            return 0
+
+    def check_single_open4(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 4, board),
+            self.is_vertical_win(checker, row, col, 4, board),
+            self.is_diagonal1_win(checker, row, col, 4, board),
+            self.is_diagonal2_win(checker, row, col, 4, board)].count(True) == 1:
+            return 1000
+        else:
+            return 0
+
+    def check_double_open3(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 3, board),
+            self.is_vertical_win(checker, row, col, 3, board),
+            self.is_diagonal1_win(checker, row, col, 3, board),
+            self.is_diagonal2_win(checker, row, col, 3, board)].count(True) >= 2:
+            return 100
+        else:
+            return 0
+
+    def check_single_open3(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 3, board),
+            self.is_vertical_win(checker, row, col, 3, board),
+            self.is_diagonal1_win(checker, row, col, 3, board),
+            self.is_diagonal2_win(checker, row, col, 3, board)].count(True) == 1:
+            return 10
+        else:
+            return 0
+
+    def check_single_open2(self, checker, row, col, board):
+        if [self.is_horizontal_win(checker, row, col, 2, board),
+            self.is_vertical_win(checker, row, col, 2, board),
+            self.is_diagonal1_win(checker, row, col, 2, board),
+            self.is_diagonal2_win(checker, row, col, 2, board)].count(True) == 1:
+            return 1
         else:
             return 0
 
     def is_horizontal_win(self, checker, r, c, num_checker, board):
         cnt = 0
-
+        op = 0
+        if checker == self.opponent_checker():
+            op = 1
+            num_checker = num_checker - 1
         for i in range(num_checker):
             # Check if the next four columns in this row
             # contain the specified checker.
-            if c + i < board.width and board.slots[r][c + i] == checker:
+            if c + i + op < board.width and board.slots[r][c + i + op] == checker:
                 cnt += 1
                 # print('Hl: ' + str(cnt))
             else:
@@ -319,7 +375,7 @@ class AIPlayer(Player):
         else:
             # check towards left
             for i in range(1, num_checker + 1 - cnt):
-                if c - i >= 0 and board.slots[r][c - i] == checker:
+                if c - i - op >= 0 and board.slots[r][c - i - op] == checker:
                     cnt += 1
                     # print('Hr: ' + str(cnt))
                 else:
@@ -332,10 +388,15 @@ class AIPlayer(Player):
 
     def is_vertical_win(self, checker, r, c, num_checker, board):
         cnt = 0
+        op = 0
+        if checker == self.opponent_checker():
+            op = 1
+            num_checker = num_checker -1
+
         for i in range(num_checker):
             # Check if the next four rows in this col
             # contain the specified checker.
-            if r + i < board.width and board.slots[r + i][c] == checker:
+            if r + i + op < board.width and board.slots[r + i + op][c] == checker:
                 cnt += 1
                 # print('Vdwn: ' + str(cnt))
             else:
@@ -346,7 +407,7 @@ class AIPlayer(Player):
         else:
             # check upwards
             for i in range(1, num_checker + 1 - cnt):
-                if r - i >= 0 and board.slots[r - i][c] == checker:
+                if r - i - op >= 0 and board.slots[r - i - op][c] == checker:
                     cnt += 1
                     # print('Vup: ' + str(cnt))
                 else:
@@ -359,9 +420,13 @@ class AIPlayer(Player):
 
     def is_diagonal1_win(self, checker, r, c, num_checker, board):
         cnt = 0
+        op = 0
+        if checker == self.opponent_checker():
+            op = 1
+            num_checker = num_checker - 1
         for i in range(num_checker):
-            if r + i < board.height and c + i < board.width and \
-                    board.slots[r + i][c + i] == checker:
+            if r + i + op < board.height and c + i + op < board.width and \
+                    board.slots[r + i + op][c + i + op] == checker:
                 cnt += 1
                 # print('D1: L ' + str(cnt))
             else:
@@ -370,8 +435,8 @@ class AIPlayer(Player):
             return True
         else:
             for i in range(1, num_checker + 1 - cnt):
-                if r - i >= 0 and c - i >= 0 and \
-                        board.slots[r - i][c - i] == checker:
+                if r - i - op >= 0 and c - i - op >= 0 and \
+                        board.slots[r - i - op][c - i - op] == checker:
                     cnt += 1
                     # print('D1: R ' + str(cnt))
                 else:
@@ -384,9 +449,13 @@ class AIPlayer(Player):
 
     def is_diagonal2_win(self, checker, r, c, num_checker, board):
         cnt = 0
+        op = 0
+        if checker == self.opponent_checker():
+            op = 1
+            num_checker = num_checker - 1
         for i in range(num_checker):
-            if r - i >= 0 and c + i < board.width and \
-                    board.slots[r - i][c + i] == checker:
+            if r - i - op >= 0 and c + i + op < board.width and \
+                    board.slots[r - i - op][c + i + op] == checker:
                 cnt += 1
                 # print('D2: L ' + str(cnt))
             else:
@@ -396,8 +465,8 @@ class AIPlayer(Player):
             return True
         else:
             for i in range(1, num_checker + 1 - cnt):
-                if r + i < board.height and c - i >= 0 and \
-                        board.slots[r + i][c - i] == checker:
+                if r + i + op < board.height and c - i - op >= 0 and \
+                        board.slots[r + i + op][c - i - op] == checker:
                     cnt += 1
                     # print('D2: R ' + str(cnt))
                 else:
