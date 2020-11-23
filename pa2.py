@@ -28,7 +28,6 @@ class AIPlayer(Player):
         # This part seems useless...
         super().__init__(checker)
         self.isolated = 0
-        self.minimizer = 0
         self.maximizer = 1
         self.depth = 2
         self.max_depth = 2
@@ -43,6 +42,7 @@ class AIPlayer(Player):
         self.direction = [[0, 1], [1, 0], [1, 1], [1, -1]]
         self.moves = []
         self.next = []
+        self.max = 1000000
         self.score_dict = {
             1: 10,
             2: 100,
@@ -54,15 +54,15 @@ class AIPlayer(Player):
 
     def next_move(self, board):
         """ returns the called AIPlayer's next move for a game on
-            the specified Board object. 
+            the specified Board object.
             input: board is a Board object for the game that the called
                      Player is playing.
-            return: row, col are the coordinated of a vacant location on the board 
+            return: row, col are the coordinated of a vacant location on the board
         """
         self.num_moves += 1
 
         ################### TODO: ######################################
-        # Implement your strategy here. 
+        # Implement your strategy here.
         # Feel free to call as many as helper functions as you want.
         # We only cares the return of this function
         ################################################################
@@ -114,7 +114,6 @@ class AIPlayer(Player):
             row: row number of position
             col: column number of position
             depth: depth of the tree
-
         """
         # Need a function that calculate score based on the current board
         # Need a function to check whether it is a terminal node(game over)
@@ -125,9 +124,10 @@ class AIPlayer(Player):
         # win_score = self.is_win(row, col, board, maximizingPlayer)
         if len(self.moves) != 0:
             p = self.moves[-1]
-            if maximizingPlayer and (depth == 0 or board.is_win_for(self.checker, p[0], p[1]) or
-                                     board.is_win_for(self.opponent_checker(), p[0], p[1])):
+            if depth == 0:
                 return mid_score
+            elif board.is_win_for(self.checker, p[0], p[1]) or board.is_win_for(self.opponent_checker(), p[0], p[1]):
+                return self.max
 
         for row in range(board.height):
             for col in range(board.width):
@@ -148,7 +148,13 @@ class AIPlayer(Player):
                     help_score = self.compute_score(row, col, board, maximizingPlayer, depth)
                 else:
                     help_score = - self.compute_score(row, col, board, maximizingPlayer, depth)
-                score = - self.alphabeta(board, depth - 1, -beta, -alpha, not maximizingPlayer, help_score + mid_score)
+                if depth == self.depth and help_score >= self.score_dict[5]:
+                    self.remove_checker(row, col, board)
+                    self.next = self.moves[0]
+                    node = self.moves.pop()
+                    return help_score
+                score = - self.alphabeta(board, depth - 1, -beta, -alpha, not maximizingPlayer,
+                                         help_score + mid_score * 1.2)
                 self.remove_checker(row, col, board)
                 node = self.moves.pop()
                 # self.remove_checker(row, col, board)
@@ -187,8 +193,6 @@ class AIPlayer(Player):
             2. score for each situations
                 open five: "XXXXX" win! 10000 pts
                 open four, double open three: "_XXXX_" or "  " gonna win! 9000 pts
-
-
                 open three: attack! _XXX_
                 open two: _XX_
                 dead four: OXXXX_
@@ -198,13 +202,28 @@ class AIPlayer(Player):
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
         my_score = 0
+        has_to_block = []
         for direction in self.direction:
             num_checkers, is_open = self.direction_check(self.checker_list[maximizingPlayer],
                                                          row, col, board, direction[0], direction[1])
             if is_open == 2:
-                my_score += self.score_dict[num_checkers]
+                if num_checkers >= 3:
+                    has_to_block.append(num_checkers)
+                    if len(has_to_block) > 1:
+                        my_score += self.score_dict[num_checkers] * 3
+                    else:
+                        my_score += self.score_dict[num_checkers]
+                else:
+                    my_score += self.score_dict[num_checkers]
             elif is_open == 1:
-                my_score += self.score_dict[num_checkers] * 0.2
+                if num_checkers >= 4:
+                    has_to_block.append(num_checkers)
+                    if len(has_to_block) > 1:
+                        my_score += self.score_dict[num_checkers] * 3
+                    else:
+                        my_score += self.score_dict[num_checkers] * 0.2
+                else:
+                    my_score += self.score_dict[num_checkers] * 0.2
 
         return my_score  # + op_score * 0.5) * depth  # I set this so I can run the game and see what our AI can do currently
 
@@ -218,277 +237,6 @@ class AIPlayer(Player):
         for row_index in range(max(row - layer, 0), min(row + layer + 1, row_size)):
             for col_index in range(max(col - layer, 0), min(col + layer + 1, col_size)):
                 self.isolated[row_index][col_index] = True
-
-    def is_win(self, row, col, board, maximizingPlayer):
-        """
-            After add checker to this position, we have
-            5, open 4, double open 4, we will win. So this is the terminate node
-        """
-
-        my_point = self.check_5(self.checker_list[maximizingPlayer], row, col, board) or \
-                   self.check_open4(self.checker_list[maximizingPlayer], row, col, board) or \
-                   self.check_double_open3(self.checker_list[maximizingPlayer], row, col, board)
-        opponent_point = self.check_5(self.checker_list[not maximizingPlayer], row, col, board) or \
-                         self.check_open4(self.checker_list[not maximizingPlayer], row, col, board) or \
-                         self.check_double_open3(self.checker_list[not maximizingPlayer], row, col, board)
-
-        return my_point - opponent_point * 0.1
-
-    def check_5(self, checker, row, col, board):
-        if board.is_win_for(self.checker, row, col):
-            return 100000
-        else:
-            return 0
-
-    def check_open4(self, checker, row, col, board):
-
-        # I use OR instead of list.count, Because Short circuit will save time
-        num, is_open = self.is_horizontal_win(checker, row, col, 4, board)
-        if num and is_open:
-            return self.score_dict[4]
-        num, is_open = self.is_vertical_win(checker, row, col, 4, board)
-        if num and is_open:
-            return self.score_dict[4]
-        num, is_open = self.is_diagonal2_win(checker, row, col, 4, board)
-        if num and is_open:
-            return self.score_dict[4]
-        num, is_open = self.is_diagonal1_win(checker, row, col, 4, board)
-        if num and is_open:
-            return self.score_dict[4]
-        else:
-            return 0
-
-    def check_double_open3(self, checker, row, col, board):
-        count = 0
-        if self.is_horizontal_win(checker, row, col, 3, board).count(True) == 2:
-            count += 1
-        if self.is_vertical_win(checker, row, col, 3, board).count(True) == 2:
-            count += 1
-            if count == 2:
-                return self.score_dict[3] * 8
-        if self.is_diagonal1_win(checker, row, col, 3, board).count(True) == 2:
-            count += 1
-            if count == 2:
-                return self.score_dict[3] * 8
-        if self.is_diagonal2_win(checker, row, col, 3, board).count(True) == 2:
-            count += 1
-            if count == 2:
-                return self.score_dict[3] * 8
-        if count == 1:
-            self.open3 = True
-            return self.score_dict[3]
-        return 0
-
-    # def check_single_open3(self, checker, row, col, board):
-    #     return [self.is_horizontal_win(checker, row, col, 3, board),
-    #             self.is_vertical_win(checker, row, col, 3, board),
-    #             self.is_diagonal1_win(checker, row, col, 3, board),
-    #             self.is_diagonal2_win(checker, row, col, 3, board)].count(True) * 1000
-
-    def check_single_open2(self, checker, row, col, board):
-        # <<<<<<< HEAD
-        count = 0
-        if self.is_horizontal_win(checker, row, col, 2, board).count(True) == 2:
-            count += 1
-        if self.is_vertical_win(checker, row, col, 2, board).count(True) == 2:
-            count += 1
-        if self.is_diagonal1_win(checker, row, col, 2, board).count(True) == 2:
-            count += 1
-        if self.is_diagonal2_win(checker, row, col, 2, board).count(True) == 2:
-            count += 1
-        return count * self.score_dict[2]
-
-    def is_horizontal_win(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        lower, upper = c, c
-
-        for i in range(num_checker):
-            # Check if the next four columns in this row
-            # contain the specified checker.
-            upper = c + i
-            if upper < board.width and board.slots[r][upper] == checker:
-                cnt += 1
-                # print('Hl: ' + str(cnt))
-            else:
-                upper -= 1
-                break
-        if not board.can_add_to(r, upper + 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(r, lower - 1):
-                    is_open = False
-                return True, is_open
-        else:
-            # check towards left
-            for i in range(1, num_checker + 1 - cnt):
-                lower = c - i
-                if c - i >= 0 and board.slots[r][c - i] == checker:
-                    cnt += 1
-                    # print('Hr: ' + str(cnt))
-                else:
-                    lower = lower + 1
-                    break
-
-        if not board.can_add_to(r, lower - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
-
-    def is_vertical_win(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        lower, upper = r, r
-
-        for i in range(num_checker):
-            # Check if the next four columns in this row
-            # contain the specified checker.
-            upper = r + i
-            if upper < board.height and board.slots[upper][c] == checker:
-                cnt += 1
-                # print('Hl: ' + str(cnt))
-            else:
-                upper -= 1
-                break
-        if not board.can_add_to(upper + 1, c):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(lower - 1, c):
-                    is_open = False
-                return True, is_open
-        else:
-            # check towards left
-            for i in range(1, num_checker + 1 - cnt):
-                lower = r - i
-                if lower >= 0 and board.slots[lower][c] == checker:
-                    cnt += 1
-                    # print('Hr: ' + str(cnt))
-                else:
-                    lower = lower + 1
-                    break
-
-        if not board.can_add_to(lower - 1, c):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
-
-    def is_diagonal1_win(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        l_c, l_r, u_c, u_r = c, r, c, r
-
-        for i in range(num_checker):
-            u_c, u_r = c + i, r + i
-            if u_r < board.height and u_c < board.width and \
-                    board.slots[u_r][u_c] == checker:
-                cnt += 1
-                # print('D1: L ' + str(cnt))
-            else:
-                u_c -= 1
-                u_r -= 1
-                break
-
-        if not board.can_add_to(u_r + 1, u_c + 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if not board.can_add_to(l_r - 1, l_c - 1):
-                    is_open = False
-                return True, is_open
-        else:
-            for i in range(1, num_checker + 1 - cnt):
-                l_c, l_r = c - i, r - i
-                if l_r >= 0 and l_c >= 0 and \
-                        board.slots[l_r][l_c] == checker:
-                    cnt += 1
-                    # print('D1: R ' + str(cnt))
-                else:
-                    l_r += 1
-                    l_c += 1
-                    break
-
-        if not board.can_add_to(l_r - 1, l_c - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
-
-    def is_diagonal2_win(self, checker, r, c, num_checker, board):
-        cnt = 0
-        is_open = True
-        l_c, l_r, u_c, u_r = c, r, c, r
-
-        for i in range(num_checker):
-            u_c, u_r = c + i, r - i
-            if u_r >= 0 and u_c < board.width and \
-                    board.slots[u_r][u_c] == checker:
-                cnt += 1
-                # print('D1: L ' + str(cnt))
-            else:
-                u_c -= 1
-                u_r += 1
-                break
-
-        if not board.can_add_to(u_r - 1, u_c + 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                if board.can_add_to(l_r + 1, l_c - 1):
-                    is_open = False
-                return True, is_open
-        else:
-            for i in range(1, num_checker + 1 - cnt):
-                l_c, l_r = c - i, r + i
-                if l_r < board.height and l_c >= 0 and \
-                        board.slots[l_r][l_c] == checker:
-                    cnt += 1
-                    # print('D1: R ' + str(cnt))
-                else:
-                    l_r -= 1
-                    l_c += 1
-                    break
-
-        if not board.can_add_to(l_r + 1, l_c - 1):
-            is_open = False
-
-        if cnt == num_checker:
-            if num_checker == 5:
-                return True, True
-            else:
-                return True, is_open
-
-        return False, is_open
 
     def pinpoint_checker(self, board):
         """
