@@ -96,7 +96,7 @@ class AIPlayer(Player):
         # skip some positions(see alphabeta in detail)
         # search the tree
 
-        score = - self.alphabeta(board, self.depth, alpha, beta, True)
+        score = - self.alphabeta(board, self.depth, alpha, beta, True, 0)
 
         # pick the biggest score
         # if score > alpha:
@@ -105,11 +105,11 @@ class AIPlayer(Player):
         #     alpha = score
         #     best_row, best_col = row, col
 
-        print(alpha)
+        # print(alpha)
         self.my_moves.append([best_row, best_col])
         return self.next
 
-    def alphabeta(self, board, depth, alpha, beta, maximizingPlayer):
+    def alphabeta(self, board, depth, alpha, beta, maximizingPlayer, mid_score):
         """ return the score if we add checker to (row, column).
             row: row number of position
             col: column number of position
@@ -125,10 +125,9 @@ class AIPlayer(Player):
         # win_score = self.is_win(row, col, board, maximizingPlayer)
         if len(self.moves) != 0:
             p = self.moves[-1]
-            if depth == 0 or board.is_win_for(self.checker, p[0], p[1]) or \
-                    board.is_win_for(self.opponent_checker(), p[0], p[1]):
-                return self.eval(board, depth)
-
+            if maximizingPlayer and (depth == 0 or board.is_win_for(self.checker, p[0], p[1]) or
+                                     board.is_win_for(self.opponent_checker(), p[0], p[1])):
+                return mid_score
 
         for row in range(board.height):
             for col in range(board.width):
@@ -144,7 +143,13 @@ class AIPlayer(Player):
                 isolate_temp = copy.deepcopy(self.isolated)
                 self.update_isolate(row, col, self.layer, board.height, board.width)
                 self.moves.append([row, col])
-                score = - self.alphabeta(board, depth - 1, -beta, -alpha, not maximizingPlayer)
+                board.add_checker(self.checker_list[maximizingPlayer], row, col)
+                if maximizingPlayer:
+                    help_score = self.compute_score(row, col, board, maximizingPlayer, depth)
+                else:
+                    help_score = - self.compute_score(row, col, board, maximizingPlayer, depth)
+                score = - self.alphabeta(board, depth - 1, -beta, -alpha, not maximizingPlayer, help_score + mid_score)
+                self.remove_checker(row, col, board)
                 node = self.moves.pop()
                 # self.remove_checker(row, col, board)
                 # self.moves.pop()
@@ -193,41 +198,13 @@ class AIPlayer(Player):
             3. use the number of ways of winning. It may be quite good when we only have open2/dead2/dead3
         """
         my_score = 0
-        # op_score = 0
         for direction in self.direction:
             num_checkers, is_open = self.direction_check(self.checker_list[maximizingPlayer],
                                                          row, col, board, direction[0], direction[1])
             if is_open == 2:
                 my_score += self.score_dict[num_checkers]
             elif is_open == 1:
-                my_score += self.score_dict[num_checkers] * 0.5
-
-        # board.slots[row][col] = self.checker_list[not maximizingPlayer]
-        # for direction in self.direction:
-        #     num_checkers, is_open = self.direction_check(self.checker_list[not maximizingPlayer],
-        #                                                  row, col, board, direction[0], direction[1])
-        #     if is_open == 2:
-        #         op_score += self.score_dict[num_checkers]
-        #     elif is_open == 1:
-        #         op_score += self.score_dict[num_checkers] * 0.5
-        # board.slots[row][col] = self.checker_list[maximizingPlayer]
-
-        # score = self.is_win(row, col, board, maximizingPlayer)
-
-        # score should be my score - opponent's score... I don't know how to expalin that, but everyone use this score.
-        # score += self.check_single_open5(self.checker, row, col, board)
-        # score += self.check_single_open5(self.opponent_checker(), row, col, board) * 2)
-        # score += self.check_single_open4(self.checker, row, col, board)
-        # score += (self.check_single_open4(self.opponent_checker, row, col, board) * 2)
-        # score += self.check_double_open3(self.checker, row, col, board)
-        # score += (self.check_double_open3(self.opponent_checker, row, col, board) * 2)
-
-        # score += 300 if self.myopen3 else 0
-        # score += score - 300 * 10 if self.myopen3 else score
-
-        # todo: check 2 (I want to build a function to check all the situation(open3, open2) at the same time)
-        # score += self.check_single_open2(self.checker, row, col, board)
-        # score += self.check_single_open2(self.opponent_checker(), row, col, board)
+                my_score += self.score_dict[num_checkers] * 0.2
 
         return my_score  # + op_score * 0.5) * depth  # I set this so I can run the game and see what our AI can do currently
 
