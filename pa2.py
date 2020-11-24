@@ -75,6 +75,7 @@ class AIPlayer(Player):
 
         self.isolated = [[False] * board.width for i in range(board.height)]
 
+        # Begins list of move with preset
         if self.num_moves <= 2:
             self.pinpoint_checker(board)
             first_move = self.first_moves(board.height, board.width)
@@ -161,7 +162,7 @@ class AIPlayer(Player):
                 # self.moves.pop()
                 self.isolated = isolate_temp
 
-                # compare
+                # comparing score to alpha and beta
                 if score > alpha:
                     if depth == self.depth:
                         self.next = self.moves[0] if len(self.moves) > 0 else node
@@ -281,6 +282,7 @@ class AIPlayer(Player):
                        self.opponent_first_checkers[0][1] + random.choice([1, -1])
 
     def direction_check(self, checker, r, c, board, r_dir, c_dir):
+        # Checks for spaces around the checkers to achieve win
         cnt = 0
         counter = 5
         is_open = 2
